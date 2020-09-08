@@ -1,0 +1,28 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+torch = "==1.6.0"
+pandas = "*"
+numpy = "*"
+sklearn = "*"
+kaggle = "*"
+scikit-learn = "*"
+xgboost = "*"
+lightgbm = "*"
+pytorch-lightning = "==0.9.0"
+torchvision = "*"
+torchnet = "*"
+notebook = "*"
+apex = {git = "https://github.com/nvidia/apex.git"}
+ipywidgets = "*"
+matplotlib = "*"
+hydra-core = "*"
+tensorboard = "*"
+
+[requires]
+python_version = "3.6"
