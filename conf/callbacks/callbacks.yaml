@@ -1,0 +1,26 @@
+callbacks:
+  early_stopping:
+    class: pytorch_lightning.callbacks.EarlyStopping
+    params:
+      monitor: ${training.val_metric}
+      patience: 50
+      mode: min
+      verbose: true
+
+  model_checkpoint:
+    class: pytorch_lightning.callbacks.ModelCheckpoint
+    params:
+      monitor: ${training.val_metric}
+      save_top_k: 1
+      filepath: ${training.logs_dir}model_${training.model_id}/fold_${training.fold}/{epoch}-{val_rmse:.3f}
+      verbose: true
+      save_weights_only: true
+      mode: min
+      period: 1
+
+  tensorboard:
+    class: pytorch_lightning.loggers.TensorBoardLogger
+    params:
+      save_dir: ${training.logs_dir}
+      name: model_${training.model_id}
+      version: fold_${training.fold}
