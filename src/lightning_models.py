@@ -1,13 +1,9 @@
 import os
 import pytorch_lightning as pl
 import torch
-from src.utils import loss_fn, jaccard
 from torch.utils.data import DataLoader
 import pandas as pd
 import numpy as np
-from torch import nn
-import hydra
-from sklearn.model_selection import train_test_split
 import torch.nn as nn
 from torch import optim
 from cnn_finetune import make_model as make_pretrained_model
@@ -16,6 +12,7 @@ from torchvision import transforms
 from src.dataset import ZindiWheatDataset
 from src.augmentations import Augmentations
 from sklearn.metrics import mean_squared_error
+from src.utils import preprocess_df
 
 
 class LitWheatModel(pl.LightningModule):
@@ -64,9 +61,8 @@ class LitWheatModel(pl.LightningModule):
             pass
         else:
             train = pd.read_csv(self.cfg.training.train_csv)
-            train["path"] = train.UID.map(
-                lambda x: os.path.join(self.cfg.training.data_dir, f"{x}.jpeg")
-            )
+            train = preprocess_df(train, data_dir=self.cfg.training.data_dir)
+
             train["label"] = train["growth_stage"] - 1
 
             self.df_train = train[train.fold != self.cfg.training.fold].reset_index(
@@ -93,7 +89,7 @@ class LitWheatModel(pl.LightningModule):
             batch_size=self.cfg.training.train_batch_size,
             num_workers=self.cfg.training.num_workers,
             shuffle=True,
-            # pin_memory=True,
+            pin_memory=True,
         )
         return train_loader
 
@@ -113,7 +109,7 @@ class LitWheatModel(pl.LightningModule):
             batch_size=self.cfg.training.valid_batch_size,
             num_workers=self.cfg.training.num_workers,
             shuffle=False,
-            # pin_memory=True,
+            pin_memory=True,
         )
 
         return valid_loader
@@ -123,7 +119,7 @@ class LitWheatModel(pl.LightningModule):
         optimizer = optim.AdamW(self.parameters(), lr=self.cfg.training.lr)
 
         lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
-            optimizer, T_0=num_train_steps, T_mult=1, eta_min=0, last_epoch=-1
+            optimizer, T_0=num_train_steps // 2, T_mult=1, eta_min=1e-7, last_epoch=-1
         )
 
         # lr_scheduler_method = hydra.utils.get_method(self.cfg.scheduler.method_name)
@@ -175,7 +171,8 @@ class LitWheatModel(pl.LightningModule):
 
         avg_loss = torch.stack([x["step_val_loss"] for x in outputs]).mean().item()
 
-        preds = np.sum(preds * np.array(range(1, 8)), axis=-1)
+        preds = np.sum(preds * np.array(range(2, 8)), axis=-1)
+        preds = np.clip(preds, 2, 7)
         rmse = np.sqrt(mean_squared_error(preds, labels))
 
         tensorboard_logs = {

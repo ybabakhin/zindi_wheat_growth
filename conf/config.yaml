@@ -2,8 +2,8 @@ defaults:
   - callbacks: callbacks
 
 training:
-  model_id: 12
-  architecture_name: resnet34
+  model_id: 14
+  architecture_name: resnet50
   dropout: 0.3
   num_classes: 7
   input_size: 256
@@ -22,11 +22,13 @@ training:
   pretrain_path: ""
   train_csv: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/data/Train_proc.csv
   data_dir: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/data/Images/
-  gpu_list: "0"
+  gpu_list: "0,1"
 
 testing:
-  checkpoint_path: /kaggle/input/twitter-roberta-base-model/
   folds: "0,1,2,3,4"
+  test_csv: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/data/SampleSubmission.csv
+  evaluate: false
+  pseudolabels: false
 
 hydra:
   run:

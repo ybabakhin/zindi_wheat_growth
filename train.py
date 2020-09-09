@@ -14,12 +14,11 @@ import glob
 @hydra.main(config_path="conf", config_name="config")
 def run_model(cfg: DictConfig):
     print(cfg.pretty())
-    print("Working directory : {}".format(os.getcwd()))
 
     earlystopping_callback = hydra.utils.instantiate(cfg.callbacks.early_stopping)
     checkpoint_callback = hydra.utils.instantiate(cfg.callbacks.model_checkpoint)
     tb_logger = hydra.utils.instantiate(cfg.callbacks.tensorboard)
-    lr_logger = LearningRateLogger()
+    lr_logger = LearningRateLogger(logging_interval="epoch")
 
     seed_everything(cfg.training.seed)
 
@@ -47,7 +46,7 @@ def run_model(cfg: DictConfig):
         progress_bar_refresh_rate=1,
         fast_dev_run=False,
         # train_percent_check=0.1,
-        # distributed_backend="dp",
+        distributed_backend="dp",
         row_log_interval=100,
         accumulate_grad_batches=1,
         # amp_level="O1",
