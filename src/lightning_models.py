@@ -72,20 +72,21 @@ class LitWheatModel(pl.LightningModule):
             train = preprocess_df(train, data_dir=self.cfg.training.data_dir)
 
             train = train[train.label_quality == self.cfg.training.label_quality]
+            train["label"] = train["growth_stage"]
 
             if self.cfg.training.label_quality == 1:
-                train.loc[train["growth_stage" < 3], "label"] = (
-                    train.loc[train["growth_stage" < 3], "label"] - 1
+                train.loc[train["growth_stage"] < 3, "label"] = (
+                    train.loc[train["growth_stage"] < 3, "label"] - 1
                 )
-                train.loc[train["growth_stage" > 3], "label"] = (
-                    train.loc[train["growth_stage" > 3], "label"] - 2
+                train.loc[train["growth_stage"] > 3, "label"] = (
+                    train.loc[train["growth_stage"] > 3, "label"] - 2
                 )
             else:
-                train.loc[train["growth_stage" < 6], "label"] = (
-                    train.loc[train["growth_stage" < 6], "label"] - 2
+                train.loc[train["growth_stage"] < 6, "label"] = (
+                    train.loc[train["growth_stage"] < 6, "label"] - 2
                 )
-                train.loc[train["growth_stage" > 6], "label"] = (
-                    train.loc[train["growth_stage" > 6], "label"] - 3
+                train.loc[train["growth_stage"] > 6, "label"] = (
+                    train.loc[train["growth_stage"] > 6, "label"] - 3
                 )
 
             self.df_train = train[train.fold != self.cfg.training.fold].reset_index(

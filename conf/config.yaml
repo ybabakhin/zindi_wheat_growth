@@ -2,11 +2,11 @@ defaults:
   - callbacks: callbacks
 
 training:
-  model_id: 30
+  model_id: 33
   architecture_name: resnet50
   dropout: 0.3
-  num_classes: 6
-  label_quality: 1
+  num_classes: 5
+  label_quality: 2
   input_size: 256
   train_batch_size: 32
   valid_batch_size: 32
