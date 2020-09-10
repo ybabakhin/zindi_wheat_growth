@@ -22,14 +22,7 @@ def run_model(cfg: DictConfig):
 
     seed_everything(cfg.training.seed)
 
-    if cfg.training.pretrain_path == "":
-        model = LitWheatModel(hydra_cfg=cfg)
-    else:
-        pass
-        # checkpoint = load_from_file_fast(cfg.training.pretrain_path)
-        # hparams = Namespace(**checkpoint["hparams"])
-        # model = LitTweetModel(hparams, hydra_cfg=cfg)
-        # model.load_state_dict(checkpoint["state_dict"])
+    model = LitWheatModel(hydra_cfg=cfg)
 
     gpu_list = [int(x) for x in cfg.training.gpu_list.split(",") if x != ""]
 

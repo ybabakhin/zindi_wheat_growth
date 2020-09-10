@@ -116,7 +116,7 @@ def run_model(cfg: DictConfig):
             filename,
         ),
     )
-    predictions = np.sum(probs * np.array(range(1, 8)), axis=-1)
+    predictions = np.sum(probs * np.array(range(2, 8)), axis=-1)
     predictions = np.clip(predictions, 2, 7)
 
     if cfg.testing.evaluate:

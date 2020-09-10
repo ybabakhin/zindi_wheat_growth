@@ -41,7 +41,6 @@ class LitWheatModel(pl.LightningModule):
                 pretrained=True,
                 dropout_p=self.cfg.training.dropout,
                 pool=nn.AdaptiveAvgPool2d(1),
-                # input_size=self.cfg.training.input_size,
             )
 
             mean = self.model.original_model_info.mean
@@ -51,6 +50,15 @@ class LitWheatModel(pl.LightningModule):
             [transforms.ToTensor(), transforms.Normalize(mean, std)]
         )
         self.criterion = nn.CrossEntropyLoss(reduction="mean")
+
+        if self.cfg.training.pretrain_path != "":
+            pass
+            # checkpoint = torch.load(self.cfg.training.pretrain_path)
+            # checkpoint["state_dict"] = {
+            #     k[6:]: v for k, v in checkpoint["state_dict"].items()
+            # }
+            # self.model.load_state_dict(checkpoint["state_dict"])
+            # self.model._classifier = nn.Linear(2048, 6)
 
     def forward(self, x):
         x = self.model(x)
@@ -63,14 +71,29 @@ class LitWheatModel(pl.LightningModule):
             train = pd.read_csv(self.cfg.training.train_csv)
             train = preprocess_df(train, data_dir=self.cfg.training.data_dir)
 
-            train["label"] = train["growth_stage"] - 1
+            train = train[train.label_quality == self.cfg.training.label_quality]
+
+            if self.cfg.training.label_quality == 1:
+                train.loc[train["growth_stage" < 3], "label"] = (
+                    train.loc[train["growth_stage" < 3], "label"] - 1
+                )
+                train.loc[train["growth_stage" > 3], "label"] = (
+                    train.loc[train["growth_stage" > 3], "label"] - 2
+                )
+            else:
+                train.loc[train["growth_stage" < 6], "label"] = (
+                    train.loc[train["growth_stage" < 6], "label"] - 2
+                )
+                train.loc[train["growth_stage" > 6], "label"] = (
+                    train.loc[train["growth_stage" > 6], "label"] - 3
+                )
 
             self.df_train = train[train.fold != self.cfg.training.fold].reset_index(
                 drop=True
             )
-            self.df_valid = train[
-                (train.fold == self.cfg.training.fold) & (train.label_quality == 2)
-            ].reset_index(drop=True)
+            self.df_valid = train[(train.fold == self.cfg.training.fold)].reset_index(
+                drop=True
+            )
 
     def train_dataloader(self):
         augs = Augmentations.get(self.cfg.training.augmentations)()
@@ -118,8 +141,12 @@ class LitWheatModel(pl.LightningModule):
         num_train_steps = len(self.train_dataloader()) * self.cfg.training.max_epochs
         optimizer = optim.AdamW(self.parameters(), lr=self.cfg.training.lr)
 
+        # lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
+        #     optimizer, T_0=num_train_steps // 2, T_mult=1, eta_min=1e-7, last_epoch=-1
+        # )
+
         lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
-            optimizer, T_0=num_train_steps // 2, T_mult=1, eta_min=1e-7, last_epoch=-1
+            optimizer, T_0=num_train_steps, T_mult=1, eta_min=0, last_epoch=-1
         )
 
         # lr_scheduler_method = hydra.utils.get_method(self.cfg.scheduler.method_name)
@@ -171,8 +198,13 @@ class LitWheatModel(pl.LightningModule):
 
         avg_loss = torch.stack([x["step_val_loss"] for x in outputs]).mean().item()
 
-        preds = np.sum(preds * np.array(range(2, 8)), axis=-1)
-        preds = np.clip(preds, 2, 7)
+        if self.cfg.training.label_quality == 1:
+            multipliers = np.array([1, 2, 4, 5, 6, 7])
+        else:
+            multipliers = np.array([2, 3, 4, 5, 7])
+
+        preds = np.sum(preds * multipliers, axis=-1)
+        preds = np.clip(preds, self.cfg.training.label_quality, 7)
         rmse = np.sqrt(mean_squared_error(preds, labels))
 
         tensorboard_logs = {
