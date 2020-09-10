@@ -1,4 +1,5 @@
 import os
+import random
 import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader
@@ -52,13 +53,12 @@ class LitWheatModel(pl.LightningModule):
         self.criterion = nn.CrossEntropyLoss(reduction="mean")
 
         if self.cfg.training.pretrain_path != "":
-            pass
-            # checkpoint = torch.load(self.cfg.training.pretrain_path)
-            # checkpoint["state_dict"] = {
-            #     k[6:]: v for k, v in checkpoint["state_dict"].items()
-            # }
-            # self.model.load_state_dict(checkpoint["state_dict"])
-            # self.model._classifier = nn.Linear(2048, 6)
+            checkpoint = torch.load(self.cfg.training.pretrain_path)
+            checkpoint["state_dict"] = {
+                k[6:]: v for k, v in checkpoint["state_dict"].items()
+            }
+            self.model.load_state_dict(checkpoint["state_dict"])
+            # self.model._classifier = nn.Linear(2048, self.cfg.training.num_classes)
 
     def forward(self, x):
         x = self.model(x)
@@ -78,8 +78,17 @@ class LitWheatModel(pl.LightningModule):
                 train.loc[train["growth_stage"] < 3, "label"] = (
                     train.loc[train["growth_stage"] < 3, "label"] - 1
                 )
-                train.loc[train["growth_stage"] > 3, "label"] = (
-                    train.loc[train["growth_stage"] > 3, "label"] - 2
+                train.loc[
+                    (train["growth_stage"] > 3) & (train["growth_stage"] < 6), "label"
+                ] = (
+                    train.loc[
+                        (train["growth_stage"] > 3) & (train["growth_stage"] < 6),
+                        "label",
+                    ]
+                    - 2
+                )
+                train.loc[train["growth_stage"] > 6, "label"] = (
+                    train.loc[train["growth_stage"] > 6, "label"] - 3
                 )
             else:
                 train.loc[train["growth_stage"] < 6, "label"] = (
@@ -106,6 +115,7 @@ class LitWheatModel(pl.LightningModule):
             augmentations=augs,
             input_shape=(self.cfg.training.input_size, self.cfg.training.input_size, 3),
             crop_function="resize",
+            label_quality=self.cfg.training.label_quality,
         )
 
         train_loader = DataLoader(
@@ -126,6 +136,7 @@ class LitWheatModel(pl.LightningModule):
             augmentations=None,
             input_shape=(self.cfg.training.input_size, self.cfg.training.input_size, 3),
             crop_function="resize",
+            label_quality=self.cfg.training.label_quality,
         )
 
         valid_loader = DataLoader(
@@ -200,7 +211,7 @@ class LitWheatModel(pl.LightningModule):
         avg_loss = torch.stack([x["step_val_loss"] for x in outputs]).mean().item()
 
         if self.cfg.training.label_quality == 1:
-            multipliers = np.array([1, 2, 4, 5, 6, 7])
+            multipliers = np.array([1, 2, 4, 5, 7])
         else:
             multipliers = np.array([2, 3, 4, 5, 7])
 

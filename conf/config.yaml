@@ -2,7 +2,7 @@ defaults:
   - callbacks: callbacks
 
 training:
-  model_id: 33
+  model_id: 38
   architecture_name: resnet50
   dropout: 0.3
   num_classes: 5
@@ -20,7 +20,7 @@ training:
   augmentations: v1
   pseudolabels: false
   pseudolabels_path: ""
-  pretrain_path: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lightning_logs/model_14/fold_${training.fold}/best.ckpt
+  pretrain_path: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lightning_logs/model_37/fold_0/best.ckpt
   train_csv: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/data/Train_proc.csv
   data_dir: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/data/Images/
   gpu_list: "0,1"
