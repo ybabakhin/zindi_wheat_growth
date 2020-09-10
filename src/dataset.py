@@ -1,5 +1,5 @@
 from torch.utils.data import Dataset
-from albumentations import Resize
+from albumentations import Resize, Compose, PadIfNeeded
 import cv2
 import random
 
@@ -65,11 +65,21 @@ class ZindiWheatDataset(Dataset):
     def _crop_data(self, sample):
 
         if self.crop_function == "resize":
-            aug = Resize(
-                height=self.input_shape[0],
-                width=self.input_shape[1],
-                interpolation=cv2.INTER_AREA,
-                always_apply=True,
+            aug = Compose(
+                [
+                    PadIfNeeded(
+                        min_height=sample["image"].shape[1],
+                        min_width=sample["image"].shape[1],
+                        border_mode=cv2.BORDER_CONSTANT,
+                        always_apply=True,
+                    ),
+                    Resize(
+                        height=self.input_shape[0],
+                        width=self.input_shape[1],
+                        interpolation=cv2.INTER_AREA,
+                        always_apply=True,
+                    ),
+                ]
             )
         else:
             raise ValueError(f"{self.crop_function} cropping strategy is not available")

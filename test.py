@@ -36,7 +36,7 @@ def run_model(cfg: DictConfig):
     df_list = []
     pred_list = []
 
-    for fold in [int(x) for x in cfg.testing.folds.split(",")]:
+    for fold in cfg.testing.folds:
 
         if cfg.testing.evaluate:
             df_test = test[test.fold == fold].reset_index(drop=True)

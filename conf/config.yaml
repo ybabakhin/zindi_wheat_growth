@@ -1,5 +1,6 @@
 defaults:
   - callbacks: callbacks
+  - scheduler: cosinewarm
 
 training:
   model_id: 38
@@ -10,7 +11,7 @@ training:
   input_size: 256
   train_batch_size: 32
   valid_batch_size: 32
-  max_epochs: 30
+  max_epochs: 20
   fold: 0
   num_workers: 4
   val_metric: val_rmse
@@ -20,13 +21,13 @@ training:
   augmentations: v1
   pseudolabels: false
   pseudolabels_path: ""
-  pretrain_path: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lightning_logs/model_37/fold_0/best.ckpt
+  pretrain_path: ""
   train_csv: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/data/Train_proc.csv
   data_dir: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/data/Images/
   gpu_list: "0,1"
 
 testing:
-  folds: "0,1,2,3,4"
+  folds: [0, 1, 2, 3, 4]
   test_csv: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/data/SampleSubmission.csv
   evaluate: false
   pseudolabels: false

@@ -1,5 +1,3 @@
-import os
-import random
 import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader
@@ -14,6 +12,7 @@ from src.dataset import ZindiWheatDataset
 from src.augmentations import Augmentations
 from sklearn.metrics import mean_squared_error
 from src.utils import preprocess_df
+import hydra
 
 
 class LitWheatModel(pl.LightningModule):
@@ -153,27 +152,13 @@ class LitWheatModel(pl.LightningModule):
         num_train_steps = len(self.train_dataloader()) * self.cfg.training.max_epochs
         optimizer = optim.AdamW(self.parameters(), lr=self.cfg.training.lr)
 
-        # lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
-        #     optimizer, T_0=num_train_steps // 2, T_mult=1, eta_min=1e-7, last_epoch=-1
-        # )
-
-        lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
-            optimizer, T_0=num_train_steps, T_mult=1, eta_min=0, last_epoch=-1
+        lr_scheduler = hydra.utils.instantiate(
+            self.cfg.scheduler, optimizer=optimizer, T_0=num_train_steps // 2
         )
-
-        # lr_scheduler_method = hydra.utils.get_method(self.cfg.scheduler.method_name)
-        # try:
-        #     lr_scheduler = lr_scheduler_method(
-        #         optimizer,
-        #         num_training_steps=num_train_steps,
-        #         **self.cfg.scheduler.params
-        #     )
-        # except:
-        #     lr_scheduler = lr_scheduler_method(optimizer, **self.cfg.scheduler.params)
 
         scheduler = {
             "scheduler": lr_scheduler,
-            "interval": "step",  # or 'epoch'
+            "interval": self.cfg.scheduler.step,  # or 'epoch'
             "frequency": 1,
         }
 
