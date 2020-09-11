@@ -105,7 +105,7 @@ class LitWheatModel(pl.LightningModule):
             )
 
     def train_dataloader(self):
-        augs = Augmentations.get(self.cfg.training.augmentations)()
+        augs = Augmentations.get(self.cfg.training.augmentations)(self.cfg.training.input_size)
 
         self.train_dataset = ZindiWheatDataset(
             images=self.df_train.path.values,
@@ -153,7 +153,7 @@ class LitWheatModel(pl.LightningModule):
         optimizer = optim.AdamW(self.parameters(), lr=self.cfg.training.lr)
 
         lr_scheduler = hydra.utils.instantiate(
-            self.cfg.scheduler, optimizer=optimizer, T_0=num_train_steps // 2
+            self.cfg.scheduler, optimizer=optimizer, T_0=num_train_steps
         )
 
         scheduler = {

@@ -36,13 +36,13 @@ class ZindiWheatDataset(Dataset):
         if self.labels is not None:
             sample = self._read_label(image_index, sample)
 
-        # Augment data
-        if self.augmentations is not None:
-            sample = self._augment_data(sample)
-
         # Crop data
         if self.crop_function is not None:
             sample = self._crop_data(sample)
+
+        # Augment data
+        if self.augmentations is not None:
+            sample = self._augment_data(sample)
 
         # Preprocess data
         if self.preprocess_function is not None:
@@ -68,7 +68,7 @@ class ZindiWheatDataset(Dataset):
             aug = Compose(
                 [
                     PadIfNeeded(
-                        min_height=sample["image"].shape[1],
+                        min_height=sample["image"].shape[1] // 2,
                         min_width=sample["image"].shape[1],
                         border_mode=cv2.BORDER_CONSTANT,
                         always_apply=True,
