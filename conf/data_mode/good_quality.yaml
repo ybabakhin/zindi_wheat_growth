@@ -1,0 +1,8 @@
+# @package _group_
+num_classes: 5
+label_quality: 2
+pseudolabels: false
+pseudolabels_path: ""
+train_csv: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/data/Train_proc.csv
+data_dir: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/data/Images/
+rmse_multipliers: [2, 3, 4, 5, 7]

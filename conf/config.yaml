@@ -1,35 +1,31 @@
 defaults:
   - callbacks: callbacks
   - scheduler: cosinewarm
+  - optimizer: adamw
+  - data_mode: good_quality
 
 training:
-  model_id: 38
+  model_id: 68
   architecture_name: resnet50
   dropout: 0.3
-  num_classes: 5
-  label_quality: 2
   input_size: 256
-  train_batch_size: 32
-  valid_batch_size: 32
+  batch_size: 32
+  lr: 1e-5
+  augmentations: base
   max_epochs: 20
   fold: 0
-  num_workers: 4
   val_metric: val_rmse
-  logs_dir: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lightning_logs/
-  lr: 3e-5
-  seed: 13
-  augmentations: v1
-  pseudolabels: false
-  pseudolabels_path: ""
+  metric_mode: min
   pretrain_path: ""
-  train_csv: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/data/Train_proc.csv
-  data_dir: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/data/Images/
-  gpu_list: "0,1"
+  logs_dir: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lightning_logs/
+  seed: 13
+  num_workers: 4
+  gpu_list: [0, 1]
 
 testing:
-  folds: [0, 1, 2, 3, 4]
+  folds: [0]
   test_csv: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/data/SampleSubmission.csv
-  evaluate: false
+  evaluate: true
   pseudolabels: false
 
 hydra:

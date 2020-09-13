@@ -1,7 +1,6 @@
 from torch.utils.data import Dataset
 from albumentations import Resize, Compose, PadIfNeeded
 import cv2
-import random
 
 
 class ZindiWheatDataset(Dataset):
@@ -13,7 +12,6 @@ class ZindiWheatDataset(Dataset):
         augmentations=None,
         input_shape=(128, 128, 3),
         crop_function="resize",
-        label_quality=2,
     ):
         self.images = images
         self.labels = labels
@@ -21,7 +19,6 @@ class ZindiWheatDataset(Dataset):
         self.augmentations = augmentations
         self.input_shape = input_shape
         self.crop_function = crop_function
-        self.label_quality = label_quality
 
     def __len__(self):
         return len(self.images)
@@ -56,10 +53,7 @@ class ZindiWheatDataset(Dataset):
         return img
 
     def _read_label(self, image_index, sample):
-        if self.label_quality == 1 and self.labels[image_index] == 6:
-            sample["label"] = 3 if random.random() < 0.5 else 4
-        else:
-            sample["label"] = self.labels[image_index]
+        sample["label"] = self.labels[image_index]
         return sample
 
     def _crop_data(self, sample):

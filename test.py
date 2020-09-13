@@ -1,3 +1,5 @@
+import gc
+import hydra
 import glob
 import os
 from pytorch_lightning import seed_everything
@@ -7,10 +9,7 @@ import torch
 import numpy as np
 from tqdm import tqdm
 from src.utils import preprocess_df
-
-import hydra
 from omegaconf import DictConfig
-import gc
 from src.dataset import ZindiWheatDataset
 from src.lightning_models import LitWheatModel
 from sklearn.metrics import mean_squared_error
@@ -21,15 +20,15 @@ from src.utils import save_in_file_fast
 def run_model(cfg: DictConfig):
 
     if cfg.testing.evaluate:
-        test = pd.read_csv(cfg.training.train_csv)
-        test = preprocess_df(test, data_dir=cfg.training.data_dir)
+        test = pd.read_csv(cfg.data_mode.train_csv)
+        test = preprocess_df(test, data_dir=cfg.data_mode.data_dir)
 
         test = test[test.label_quality == 2].reset_index(drop=True)
     elif cfg.testing.pseudolabels:
         pass
     else:
         test = pd.read_csv(cfg.testing.test_csv)
-        test = preprocess_df(test, data_dir=cfg.training.data_dir)
+        test = preprocess_df(test, data_dir=cfg.data_mode.data_dir)
 
     seed_everything(cfg.training.seed)
     device = torch.device("cuda")
@@ -47,7 +46,7 @@ def run_model(cfg: DictConfig):
             f"/data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lightning_logs/model_{cfg.training.model_id}/fold_{fold}/*.ckpt"
         )
         fold_predictions = np.zeros(
-            (len(df_test), cfg.training.num_classes, len(checkpoints))
+            (len(df_test), cfg.data_mode.num_classes, len(checkpoints))
         )
 
         for checkpoint_id, checkpoint_path in enumerate(checkpoints):
@@ -67,7 +66,7 @@ def run_model(cfg: DictConfig):
 
             test_loader = DataLoader(
                 test_dataset,
-                batch_size=cfg.training.valid_batch_size,
+                batch_size=cfg.training.batch_size,
                 num_workers=cfg.training.num_workers,
                 shuffle=False,
                 pin_memory=True,
@@ -84,8 +83,8 @@ def run_model(cfg: DictConfig):
 
                     fold_predictions[
                         idx
-                        * cfg.training.valid_batch_size : (idx + 1)
-                        * cfg.training.valid_batch_size,
+                        * cfg.training.batch_size : (idx + 1)
+                        * cfg.training.batch_size,
                         :,
                         checkpoint_id,
                     ] = preds
