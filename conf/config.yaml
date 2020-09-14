@@ -5,7 +5,7 @@ defaults:
   - data_mode: good_quality
 
 training:
-  model_id: 5
+  model_id: 84
   regression: false
   architecture_name: resnet50
   dropout: 0.3
@@ -17,7 +17,7 @@ training:
   fold: 0
   val_metric: val_rmse
   metric_mode: min
-  pretrain_path: ""
+  pretrain_dir: ""
   logs_dir: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lightning_logs/
   seed: 13
   num_workers: 4
@@ -26,7 +26,7 @@ training:
 testing:
   folds: [0, 1, 2, 3, 4]
   test_csv: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/data/SampleSubmission.csv
-  evaluate: true
+  evaluate: false
   tta: true
   pseudolabels: false
 

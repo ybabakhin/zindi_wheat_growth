@@ -12,6 +12,8 @@ from src.augmentations import Augmentations
 from sklearn.metrics import mean_squared_error
 from src.utils import preprocess_df
 import hydra
+import glob
+import os
 
 
 class LitWheatModel(pl.LightningModule):
@@ -22,8 +24,9 @@ class LitWheatModel(pl.LightningModule):
 
         # Number of classes in bad labels does not equal to the number of classes in good labels
         init_model_num_classes = self.cfg.data_mode.num_classes
-        if self.cfg.training.pretrain_path != "":
-            checkpoint = torch.load(self.cfg.training.pretrain_path)
+        if self.cfg.training.pretrain_dir != "":
+            pretrain_path = glob.glob(os.path.join(self.cfg.training.pretrain_dir, "*.ckpt"))[0]
+            checkpoint = torch.load(pretrain_path)
             init_model_num_classes = (
                 checkpoint["state_dict"]
                 .get("model._fc.weight", checkpoint["state_dict"]["model._classifier.weight"])

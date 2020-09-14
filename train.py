@@ -5,6 +5,7 @@ from src.lightning_models import LitWheatModel
 import pytorch_lightning as pl
 from pytorch_lightning import seed_everything
 from omegaconf import DictConfig
+import glob
 
 
 @hydra.main(config_path="conf", config_name="config")
@@ -17,8 +18,9 @@ def run_model(cfg: DictConfig):
     tb_logger = hydra.utils.instantiate(cfg.callbacks.tensorboard)
     lr_logger = hydra.utils.instantiate(cfg.callbacks.lr_logger)
 
-    if cfg.training.pretrain_path != "":
-        model = LitWheatModel.load_from_checkpoint(cfg.training.pretrain_path, hydra_cfg=cfg)
+    if cfg.training.pretrain_dir != "":
+        pretrain_path = glob.glob(os.path.join(cfg.training.pretrain_dir, "*.ckpt"))[0]
+        model = LitWheatModel.load_from_checkpoint(pretrain_path, hydra_cfg=cfg)
 
         # Number of classes in bad labels does not equal to the number of classes in good labels
         fc_layer_name = (
