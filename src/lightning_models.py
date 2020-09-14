@@ -15,16 +15,24 @@ import hydra
 
 
 class LitWheatModel(pl.LightningModule):
-    def __init__(self, hydra_cfg):
+    def __init__(self, hparams=None, hydra_cfg=None):
         super(LitWheatModel, self).__init__()
 
         self.cfg = hydra_cfg
 
-        if self.cfg.training.architecture_name.startswith("efficientnet"):
+        # Number of classes in bad labels does not equal to the number of classes in good labels
+        init_model_num_classes = self.cfg.data_mode.num_classes
+        if self.cfg.training.pretrain_path != "":
+            checkpoint = torch.load(self.cfg.training.pretrain_path)
+            init_model_num_classes = (
+                checkpoint["state_dict"]
+                .get("model._fc.weight", checkpoint["state_dict"]["model._classifier.weight"])
+                .shape[0]
+            )
 
+        if self.cfg.training.architecture_name.startswith("efficientnet"):
             self.model = EfficientNet.from_pretrained(
-                self.cfg.training.architecture_name,
-                num_classes=self.cfg.data_mode.num_classes,
+                self.cfg.training.architecture_name, num_classes=init_model_num_classes
             )
 
             self.model._avg_pooling = nn.AdaptiveAvgPool2d(1)
@@ -36,7 +44,7 @@ class LitWheatModel(pl.LightningModule):
         else:
             self.model = make_pretrained_model(
                 self.cfg.training.architecture_name,
-                num_classes=self.cfg.data_mode.num_classes,
+                num_classes=init_model_num_classes,
                 pretrained=True,
                 dropout_p=self.cfg.training.dropout,
                 pool=nn.AdaptiveAvgPool2d(1),
@@ -48,16 +56,11 @@ class LitWheatModel(pl.LightningModule):
         self.preprocess = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize(mean, std)]
         )
-        self.criterion = nn.CrossEntropyLoss(reduction="mean")
 
-        if self.cfg.training.pretrain_path != "":
-            checkpoint = torch.load(self.cfg.training.pretrain_path)
-            self.load_state_dict(checkpoint["state_dict"])
-            # checkpoint["state_dict"] = {
-            #     k[6:]: v for k, v in checkpoint["state_dict"].items()
-            # }
-            # self.model.load_state_dict(checkpoint["state_dict"])
-            # self.model._classifier = nn.Linear(2048, self.cfg.training.num_classes)
+        if self.cfg.training.regression:
+            self.criterion = nn.SmoothL1Loss()
+        else:
+            self.criterion = nn.CrossEntropyLoss(reduction="mean")
 
     def forward(self, x):
         x = self.model(x)
@@ -69,17 +72,16 @@ class LitWheatModel(pl.LightningModule):
         else:
             train = pd.read_csv(self.cfg.data_mode.train_csv)
             train = preprocess_df(train, data_dir=self.cfg.data_mode.data_dir)
-
-            train = train[train.label_quality == self.cfg.data_mode.label_quality]
             train["label"] = train["growth_stage"]
+            train = train[train.label_quality >= self.cfg.data_mode.label_quality].copy()
 
-            if self.cfg.data_mode.label_quality == 1:
-                train.loc[train["growth_stage"] < 3, "label"] = (
-                    train.loc[train["growth_stage"] < 3, "label"] - 1
-                )
-                train.loc[train["growth_stage"] > 3, "label"] = (
-                    train.loc[train["growth_stage"] > 3, "label"] - 2
-                )
+            # Regression labels
+            if self.cfg.training.regression:
+                train["label"] = train["label"].astype("float32")
+            # Bad quality labels
+            elif self.cfg.data_mode.label_quality == 1:
+                train["label"] = train["growth_stage"] - 1
+            # Good quality labels
             else:
                 train.loc[train["growth_stage"] < 6, "label"] = (
                     train.loc[train["growth_stage"] < 6, "label"] - 2
@@ -88,17 +90,13 @@ class LitWheatModel(pl.LightningModule):
                     train.loc[train["growth_stage"] > 6, "label"] - 3
                 )
 
-            self.df_train = train[train.fold != self.cfg.training.fold].reset_index(
-                drop=True
-            )
-            self.df_valid = train[(train.fold == self.cfg.training.fold)].reset_index(
-                drop=True
-            )
+            self.df_train = train[train.fold != self.cfg.training.fold].reset_index(drop=True)
+            self.df_valid = train[
+                (train.fold == self.cfg.training.fold) & (train.label_quality == 2)
+            ].reset_index(drop=True)
 
     def train_dataloader(self):
-        augs = Augmentations.get(self.cfg.training.augmentations)(
-            self.cfg.training.input_size
-        )
+        augs = Augmentations.get(self.cfg.training.augmentations)(self.cfg.training.input_size)
 
         self.train_dataset = ZindiWheatDataset(
             images=self.df_train.path.values,
@@ -140,18 +138,14 @@ class LitWheatModel(pl.LightningModule):
 
     def configure_optimizers(self):
         num_train_steps = len(self.train_dataloader()) * self.cfg.training.max_epochs
-        optimizer = hydra.utils.instantiate(
-            self.cfg.optimizer, params=self.parameters()
-        )
+        optimizer = hydra.utils.instantiate(self.cfg.optimizer, params=self.parameters())
 
         try:
             lr_scheduler = hydra.utils.instantiate(
                 self.cfg.scheduler, optimizer=optimizer, T_0=num_train_steps
             )
         except hydra.errors.HydraException:
-            lr_scheduler = hydra.utils.instantiate(
-                self.cfg.scheduler, optimizer=optimizer
-            )
+            lr_scheduler = hydra.utils.instantiate(self.cfg.scheduler, optimizer=optimizer)
 
         scheduler = {
             "scheduler": lr_scheduler,
@@ -166,6 +160,9 @@ class LitWheatModel(pl.LightningModule):
         labels = batch["label"]
 
         preds = self(images)
+        if self.cfg.training.regression:
+            preds = preds.view(-1)
+
         loss = self.criterion(preds, labels)
         return preds, loss
 
@@ -177,16 +174,22 @@ class LitWheatModel(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         preds, loss = self._model_step(batch)
-        preds = torch.softmax(preds, dim=1)
+        if not self.cfg.training.regression:
+            preds = torch.softmax(preds, dim=1)
 
         return {"preds": preds, "step_val_loss": loss}
 
     def validation_epoch_end(self, outputs):
-        preds = np.vstack([x["preds"].cpu().detach().numpy() for x in outputs])
+        if self.cfg.training.regression:
+            preds = np.concatenate([x["preds"].cpu().detach().numpy() for x in outputs])
+        else:
+            preds = np.vstack([x["preds"].cpu().detach().numpy() for x in outputs])
+
         avg_loss = torch.stack([x["step_val_loss"] for x in outputs]).mean().item()
 
         multipliers = np.array(self.cfg.data_mode.rmse_multipliers)
-        preds = np.sum(preds * multipliers, axis=-1)
+        if not self.cfg.training.regression:
+            preds = np.sum(preds * multipliers, axis=-1)
         preds = np.clip(preds, min(multipliers), max(multipliers))
 
         labels = self.df_valid.growth_stage.values
@@ -195,11 +198,7 @@ class LitWheatModel(pl.LightningModule):
         else:
             rmse = 0
 
-        tensorboard_logs = {
-            "val_loss": avg_loss,
-            "val_rmse": rmse,
-            "step": self.current_epoch,
-        }
+        tensorboard_logs = {"val_loss": avg_loss, "val_rmse": rmse, "step": self.current_epoch}
 
         return {
             "val_loss": avg_loss,

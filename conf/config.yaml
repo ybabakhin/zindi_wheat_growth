@@ -5,7 +5,8 @@ defaults:
   - data_mode: good_quality
 
 training:
-  model_id: 68
+  model_id: 5
+  regression: false
   architecture_name: resnet50
   dropout: 0.3
   input_size: 256
@@ -23,9 +24,10 @@ training:
   gpu_list: [0, 1]
 
 testing:
-  folds: [0]
+  folds: [0, 1, 2, 3, 4]
   test_csv: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/data/SampleSubmission.csv
   evaluate: true
+  tta: true
   pseudolabels: false
 
 hydra:

@@ -1,5 +1,6 @@
 import hydra
 import os
+import torch
 from src.lightning_models import LitWheatModel
 import pytorch_lightning as pl
 from pytorch_lightning import seed_everything
@@ -16,7 +17,20 @@ def run_model(cfg: DictConfig):
     tb_logger = hydra.utils.instantiate(cfg.callbacks.tensorboard)
     lr_logger = hydra.utils.instantiate(cfg.callbacks.lr_logger)
 
-    model = LitWheatModel(hydra_cfg=cfg)
+    if cfg.training.pretrain_path != "":
+        model = LitWheatModel.load_from_checkpoint(cfg.training.pretrain_path, hydra_cfg=cfg)
+
+        # Number of classes in bad labels does not equal to the number of classes in good labels
+        fc_layer_name = (
+            "_fc" if cfg.training.architecture_name.startswith("efficientnet") else "_classifier"
+        )
+        if getattr(model.model, fc_layer_name).out_features != cfg.data_mode.num_classes:
+            fc = torch.nn.Linear(
+                getattr(model.model, fc_layer_name).in_features, cfg.data_mode.num_classes
+            )
+            setattr(model.model, fc_layer_name, fc)
+    else:
+        model = LitWheatModel(hydra_cfg=cfg)
 
     trainer = pl.Trainer(
         max_epochs=cfg.training.max_epochs,
@@ -32,6 +46,7 @@ def run_model(cfg: DictConfig):
         precision=32,
         weights_summary=None,
         progress_bar_refresh_rate=5,
+        deterministic=True,
     )
 
     # model.setup()

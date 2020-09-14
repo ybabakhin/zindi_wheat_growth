@@ -6,9 +6,7 @@ def base(input_size):
     augmentations = albu.Compose(
         [
             albu.HorizontalFlip(p=0.5),
-            albu.RandomBrightnessContrast(
-                brightness_limit=0.3, contrast_limit=0.3, p=0.5
-            ),
+            albu.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.5),
             albu.ShiftScaleRotate(
                 shift_limit=0.2,
                 scale_limit=0.2,
@@ -48,9 +46,7 @@ def augs_v2(input_size):
                 p=0.5,
             ),
             albu.HorizontalFlip(p=0.5),
-            albu.RandomBrightnessContrast(
-                brightness_limit=0.2, contrast_limit=0.2, p=0.5
-            ),
+            albu.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
             albu.ImageCompression(p=0.3, quality_lower=55, quality_upper=99),
             albu.ShiftScaleRotate(
                 shift_limit=0.3,
@@ -101,6 +97,7 @@ def augs_v2(input_size):
 #     A.Cutout(max_h_size=int(image_size * 0.375), max_w_size=int(image_size * 0.375), num_holes=1, p=0.7),
 #     A.Normalize()
 # ])
+
 
 class Augmentations:
     _augmentations = {"base": base}
