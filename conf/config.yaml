@@ -5,11 +5,11 @@ defaults:
   - data_mode: good_quality
 
 training:
-  model_id: 84
+  model_id: 89
   regression: false
   architecture_name: resnet50
   dropout: 0.3
-  input_size: 256
+  input_size: 512
   batch_size: 32
   lr: 1e-5
   augmentations: base
