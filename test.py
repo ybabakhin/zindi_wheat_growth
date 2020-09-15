@@ -67,6 +67,7 @@ def run_model(cfg: DictConfig):
                 transforms = tta.Compose(
                     [
                         tta.HorizontalFlip(),
+                        # tta.VerticalFlip(),
                         # tta.Resize([(256, 256), (384, 384), (512, 512)]),
                         # tta.Scale(scales=[1, 2]),
                         # tta.Multiply(factors=[0.9, 1, 1.1]),

@@ -5,11 +5,11 @@ defaults:
   - data_mode: good_quality
 
 training:
-  model_id: 89
+  model_id: 99
   regression: false
   architecture_name: resnet50
   dropout: 0.3
-  input_size: 512
+  input_size: 256
   batch_size: 32
   lr: 1e-5
   augmentations: base
@@ -26,7 +26,7 @@ training:
 testing:
   folds: [0, 1, 2, 3, 4]
   test_csv: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/data/SampleSubmission.csv
-  evaluate: false
+  evaluate: true
   tta: true
   pseudolabels: false
 

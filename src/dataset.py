@@ -70,7 +70,7 @@ class ZindiWheatDataset(Dataset):
                     Resize(
                         height=self.input_shape[0],
                         width=self.input_shape[1],
-                        interpolation=cv2.INTER_AREA,
+                        interpolation=cv2.INTER_LINEAR,
                         always_apply=True,
                     ),
                 ]
