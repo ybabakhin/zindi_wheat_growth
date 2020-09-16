@@ -5,7 +5,7 @@ defaults:
   - data_mode: good_quality
 
 training:
-  model_id: 99
+  model_id: 114
   regression: false
   architecture_name: resnet50
   dropout: 0.3
@@ -26,7 +26,7 @@ training:
 testing:
   folds: [0, 1, 2, 3, 4]
   test_csv: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/data/SampleSubmission.csv
-  evaluate: true
+  evaluate: false
   tta: true
   pseudolabels: false
 

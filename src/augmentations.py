@@ -6,26 +6,6 @@ def base(input_size):
     augmentations = albu.Compose(
         [
             albu.HorizontalFlip(p=0.5),
-            albu.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.5),
-            albu.ShiftScaleRotate(
-                shift_limit=0.2,
-                scale_limit=0.2,
-                rotate_limit=10,
-                border_mode=cv2.BORDER_CONSTANT,
-                value=0,
-                p=0.5,
-            ),
-            albu.ImageCompression(p=0.3, quality_lower=50, quality_upper=99),
-        ],
-        p=1,
-    )
-    return augmentations
-
-
-def base_v1(input_size):
-    augmentations = albu.Compose(
-        [
-            albu.HorizontalFlip(p=0.5),
             albu.CoarseDropout(
                 max_holes=2,
                 max_height=128,
@@ -52,7 +32,7 @@ def base_v1(input_size):
 
 
 class Augmentations:
-    _augmentations = {"base": base, "base_v1": base_v1}
+    _augmentations = {"base": base}
 
     @classmethod
     def names(cls):

@@ -84,6 +84,7 @@ class LitWheatModel(pl.LightningModule):
             # Bad quality labels
             elif self.cfg.data_mode.label_quality == 1:
                 train["label"] = train["growth_stage"] - 1
+                train.loc[train["label_quality"] == 1, "fold"] = self.cfg.training.fold + 1
             # Good quality labels
             else:
                 train.loc[train["growth_stage"] < 6, "label"] = (
