@@ -29,7 +29,8 @@ def run_model(cfg: DictConfig):
         test = pd.read_csv(cfg.data_mode.train_csv)
         test = test[test.label_quality == 2].reset_index(drop=True)
     elif cfg.testing.pseudolabels:
-        pass
+        test = pd.read_csv(cfg.data_mode.train_csv)
+        test = test[test.label_quality == 1].reset_index(drop=True)
     else:
         test = pd.read_csv(cfg.testing.test_csv)
     test = preprocess_df(test, data_dir=cfg.data_mode.data_dir)
@@ -123,7 +124,7 @@ def run_model(cfg: DictConfig):
     else:
         probs = np.stack(pred_list)
         probs = np.mean(probs, axis=0)
-        filename = "test_probs.pkl"
+        filename = "pseudo_probs.pkl" if cfg.testing.pseudolabels else "test_probs.pkl"
 
     ensemble_probs = dict(zip(test.UID.values, probs))
     save_in_file_fast(
@@ -140,7 +141,19 @@ def run_model(cfg: DictConfig):
 
     if cfg.testing.evaluate:
         rmse = np.sqrt(mean_squared_error(predictions, test.growth_stage.values))
-        print(f"OOF VALIDATION SCORE: {rmse:.5f}")
+        logger.info(f"OOF VALIDATION SCORE: {rmse:.5f}")
+    elif cfg.testing.pseudolabels:
+        test["pred"] = predictions
+        # Select only matched labels
+        test = test[np.abs(test.pred - test.growth_stage) < 2].copy()
+        test["growth_stage"] = test["pred"]
+
+        save_path = os.path.join(
+            cfg.training.logs_dir, f"model_{cfg.training.model_id}/bad_pseudo_fold_{cfg.testing.folds[0]}.csv"
+        )
+        logger.info(f"Saving pseudolabels to {save_path}")
+
+        test[["UID", "growth_stage"]].to_csv(save_path, index=False)
     else:
         test["growth_stage"] = predictions
         save_path = os.path.join(
