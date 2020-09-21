@@ -63,19 +63,20 @@ def run_model(cfg: DictConfig):
                 preprocess_function=model.preprocess,
                 augmentations=None,
                 input_shape=(cfg.training.input_size, cfg.training.input_size, 3),
-                crop_function="resize",
+                crop_function=cfg.training.crop_method,
             )
 
             if cfg.testing.tta:
-                transforms = tta.Compose(
-                    [
-                        tta.HorizontalFlip(),
-                        # tta.VerticalFlip(),
-                        # tta.Resize([(256, 256), (384, 384), (512, 512)]),
-                        # tta.Scale(scales=[1, 2]),
-                        # tta.Multiply(factors=[0.9, 1, 1.1]),
-                    ]
-                )
+                transforms = [
+                    tta.HorizontalFlip(),
+                    # tta.VerticalFlip(),
+                    # tta.Resize([(256, 256), (384, 384), (512, 512)]),
+                    # tta.Scale(scales=[1, 2]),
+                    # tta.Multiply(factors=[0.9, 1, 1.1]),
+                ]
+                if cfg.training.crop_method == "crop":
+                    transforms.append(tta.FiveCrops(crop_height=160, crop_width=512))
+                transforms = tta.Compose(transforms)
                 model = tta.ClassificationTTAWrapper(model, transforms)
 
             if torch.cuda.device_count() > 1:
