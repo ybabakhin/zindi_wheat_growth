@@ -32,7 +32,7 @@ training:
 testing:
   folds: [0, 1, 2, 3, 4]
   test_csv: ${general.base_dir}data/SampleSubmission.csv
-  evaluate: false
+  evaluate: true
   tta: true
   pseudolabels: false
 

@@ -45,7 +45,7 @@ def run_model(cfg: DictConfig):
             setattr(model.model, fc_layer_name, fc)
     else:
         logger.info("Training the model from scratch")
-        model = LitWheatModel(hparams=cfg, hydra_cfg=cfg)
+        model = LitWheatModel(hydra_cfg=cfg)
 
     trainer = pl.Trainer(
         max_epochs=cfg.training.max_epochs,

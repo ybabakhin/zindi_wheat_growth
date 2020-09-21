@@ -23,11 +23,7 @@ class LitWheatModel(pl.LightningModule):
     def __init__(self, hparams=None, hydra_cfg=None):
         super(LitWheatModel, self).__init__()
 
-        self.hparams = hparams
-        if hydra_cfg is not None:
-            self.cfg = hydra_cfg
-        else:
-            self.cfg = hparams
+        self.cfg = hydra_cfg
         self.multipliers = np.array(self.cfg.data_mode.rmse_multipliers)
 
         # Number of classes in bad labels does not equal to the number of classes in good labels

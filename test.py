@@ -75,7 +75,7 @@ def run_model(cfg: DictConfig):
                     # tta.Scale(scales=[1, 2]),
                     # tta.Multiply(factors=[0.9, 1, 1.1]),
                 ]
-                if cfg.training.crop_method == "crop":
+                if cfg.model.crop_method == "crop":
                     transforms.append(tta.FiveCrops(crop_height=160, crop_width=512))
                 transforms = tta.Compose(transforms)
                 model = tta.ClassificationTTAWrapper(model, transforms)
@@ -86,7 +86,7 @@ def run_model(cfg: DictConfig):
             test_loader = DataLoader(
                 test_dataset,
                 batch_size=cfg.training.batch_size,
-                num_workers=cfg.training.num_workers,
+                num_workers=cfg.general.num_workers,
                 shuffle=False,
                 pin_memory=True,
             )
@@ -98,7 +98,7 @@ def run_model(cfg: DictConfig):
                     images = images.to(device)
 
                     preds = model(images)
-                    if not cfg.training.regression:
+                    if not cfg.model.regression:
                         preds = torch.softmax(preds, dim=1)
                     preds = preds.cpu().detach().numpy()
 
@@ -135,7 +135,7 @@ def run_model(cfg: DictConfig):
     )
 
     multipliers = np.array(cfg.data_mode.rmse_multipliers)
-    if not cfg.training.regression:
+    if not cfg.model.regression:
         probs = np.sum(probs * multipliers, axis=-1)
     predictions = np.clip(probs, min(multipliers), max(multipliers))
 
