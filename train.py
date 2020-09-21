@@ -4,12 +4,18 @@ import torch
 from src.lightning_models import LitWheatModel
 import pytorch_lightning as pl
 from pytorch_lightning import seed_everything
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 import glob
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @hydra.main(config_path="conf", config_name="config")
 def run_model(cfg: DictConfig):
+    cwd = os.getcwd()
+    print(cwd)
+    logger.info(f"Config: {OmegaConf.to_yaml(cfg)}")
     os.environ["HYDRA_FULL_ERROR"] = "1"
     seed_everything(cfg.training.seed)
 
@@ -19,7 +25,13 @@ def run_model(cfg: DictConfig):
     lr_logger = hydra.utils.instantiate(cfg.callbacks.lr_logger)
 
     if cfg.training.pretrain_dir != "":
-        pretrain_path = glob.glob(os.path.join(cfg.training.pretrain_dir, "*.ckpt"))[0]
+        last_path = os.path.join(cfg.training.pretrain_dir, "last.ckpt")
+        if os.path.exists(last_path):
+            pretrain_path = last_path
+        else:
+            pretrain_path = glob.glob(os.path.join(cfg.training.pretrain_dir, "*.ckpt"))[0]
+        logger.info(f"Loading the pre-trained model from: {pretrain_path}")
+
         model = LitWheatModel.load_from_checkpoint(pretrain_path, hydra_cfg=cfg)
 
         # Number of classes in bad labels does not equal to the number of classes in good labels
@@ -32,7 +44,8 @@ def run_model(cfg: DictConfig):
             )
             setattr(model.model, fc_layer_name, fc)
     else:
-        model = LitWheatModel(hydra_cfg=cfg)
+        logger.info("Training the model from scratch")
+        model = LitWheatModel(hparams=cfg)
 
     trainer = pl.Trainer(
         max_epochs=cfg.training.max_epochs,
@@ -47,7 +60,7 @@ def run_model(cfg: DictConfig):
         distributed_backend="dp",
         precision=32,
         weights_summary=None,
-        progress_bar_refresh_rate=5,
+        progress_bar_refresh_rate=50,
         deterministic=True,
     )
 
@@ -57,6 +70,7 @@ def run_model(cfg: DictConfig):
     # fig = lr_finder.plot(suggest=True)
     # fig.savefig("/data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lrfinder.png")
 
+    logger.info("Start fitting the model...")
     trainer.fit(model)
 
 

@@ -15,6 +15,9 @@ from src.lightning_models import LitWheatModel
 from sklearn.metrics import mean_squared_error
 from src.utils import save_in_file_fast
 import ttach as tta
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @hydra.main(config_path="conf", config_name="config")
@@ -24,13 +27,13 @@ def run_model(cfg: DictConfig):
 
     if cfg.testing.evaluate:
         test = pd.read_csv(cfg.data_mode.train_csv)
-        test = preprocess_df(test, data_dir=cfg.data_mode.data_dir)
         test = test[test.label_quality == 2].reset_index(drop=True)
     elif cfg.testing.pseudolabels:
         pass
     else:
         test = pd.read_csv(cfg.testing.test_csv)
-        test = preprocess_df(test, data_dir=cfg.data_mode.data_dir)
+    test = preprocess_df(test, data_dir=cfg.data_mode.data_dir)
+    logger.info(f"Length of the test data: {len(test)}")
 
     device = torch.device("cuda")
     df_list = []
@@ -51,7 +54,7 @@ def run_model(cfg: DictConfig):
         fold_predictions = np.zeros((len(df_test), cfg.data_mode.num_classes, len(checkpoints)))
 
         for checkpoint_id, checkpoint_path in enumerate(checkpoints):
-            model = LitWheatModel.load_from_checkpoint(checkpoint_path, hydra_cfg=cfg)
+            model = LitWheatModel.load_from_checkpoint(checkpoint_path)
             model.eval().to(device)
 
             test_dataset = ZindiWheatDataset(
@@ -139,10 +142,12 @@ def run_model(cfg: DictConfig):
         print(f"OOF VALIDATION SCORE: {rmse:.5f}")
     else:
         test["growth_stage"] = predictions
-        test[["UID", "growth_stage"]].to_csv(
-            os.path.join(cfg.training.logs_dir, f"model_{cfg.training.model_id}/test_preds.csv"),
-            index=False,
+        save_path = os.path.join(
+            cfg.training.logs_dir, f"model_{cfg.training.model_id}/test_preds.csv"
         )
+        logger.info(f"Saving test predictions to {save_path}")
+
+        test[["UID", "growth_stage"]].to_csv(save_path, index=False)
 
 
 if __name__ == "__main__":

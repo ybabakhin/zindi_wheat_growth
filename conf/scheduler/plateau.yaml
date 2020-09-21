@@ -4,5 +4,5 @@ step: epoch
 monitor: ${training.val_metric}
 params:
   mode: ${training.metric_mode}
-  factor: 0.1
+  factor: 0.33
   patience: 5
