@@ -2,17 +2,17 @@ import albumentations as albu
 import cv2
 
 
-def base(input_size):
+def base(input_h, input_w):
     augmentations = albu.Compose(
         [
             albu.HorizontalFlip(p=0.5),
             albu.CoarseDropout(
                 max_holes=2,
-                max_height=input_size // 2,
-                max_width=input_size // 128 + 1,
+                max_height=input_h // 2,
+                max_width=input_w // 128 + 1,
                 min_holes=1,
-                min_height=input_size // 8,
-                min_width=input_size // 128,
+                min_height=input_h // 8,
+                min_width=input_w // 128,
                 fill_value=255,
                 p=0.5,
             ),

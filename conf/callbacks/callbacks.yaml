@@ -10,7 +10,7 @@ model_checkpoint:
   _target_: pytorch_lightning.callbacks.ModelCheckpoint
   monitor: ${training.val_metric}
   save_top_k: 1
-  filepath: ${training.logs_dir}model_${training.model_id}/fold_${training.fold}/{epoch}-{val_rmse:.3f}
+  filepath: ${general.logs_dir}model_${model.model_id}/fold_${training.fold}/{epoch}-{val_rmse:.3f}
   verbose: true
   save_weights_only: true
   mode: ${training.metric_mode}
@@ -19,8 +19,8 @@ model_checkpoint:
 
 tensorboard:
   _target_: pytorch_lightning.loggers.TensorBoardLogger
-  save_dir: ${training.logs_dir}
-  name: model_${training.model_id}
+  save_dir: ${general.logs_dir}
+  name: model_${model.model_id}
   version: fold_${training.fold}
 
 lr_logger:

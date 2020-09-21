@@ -4,13 +4,22 @@ defaults:
   - optimizer: adamw
   - data_mode: good_quality
 
-training:
-  model_id: 159
+general:
+  base_dir: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/
+  logs_dir: ${general.base_dir}lightning_logs/
+  seed: 13
+  num_workers: 4
+  gpu_list: [0, 1]
+
+model:
+  model_id: 1
   regression: false
-  architecture_name: resne50
+  architecture_name: resnet50
   dropout: 0.3
-  input_size: 256
+  input_size: [256, 256]
   crop_method: resize
+
+training:
   batch_size: 32
   lr: 1e-5
   augmentations: base
@@ -19,19 +28,14 @@ training:
   val_metric: val_rmse
   metric_mode: min
   pretrain_dir: ""
-  base_dir: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/
-  logs_dir: ${training.base_dir}lightning_logs/
-  seed: 13
-  num_workers: 4
-  gpu_list: [0, 1]
 
 testing:
   folds: [0, 1, 2, 3, 4]
-  test_csv: ${training.base_dir}data/SampleSubmission.csv
+  test_csv: ${general.base_dir}data/SampleSubmission.csv
   evaluate: false
   tta: true
   pseudolabels: false
 
 hydra:
   run:
-    dir: ${training.logs_dir}model_${training.model_id}
+    dir: ${general.logs_dir}model_${model.model_id}

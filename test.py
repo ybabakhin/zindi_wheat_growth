@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 @hydra.main(config_path="conf", config_name="config")
 def run_model(cfg: DictConfig):
     os.environ["HYDRA_FULL_ERROR"] = "1"
-    seed_everything(cfg.training.seed)
+    seed_everything(cfg.general.seed)
 
     if cfg.testing.evaluate:
         test = pd.read_csv(cfg.data_mode.train_csv)
@@ -49,13 +49,13 @@ def run_model(cfg: DictConfig):
 
         checkpoints = glob.glob(
             os.path.join(
-                cfg.training.logs_dir, f"model_{cfg.training.model_id}/fold_{fold}/*.ckpt"
+                cfg.general.logs_dir, f"model_{cfg.model.model_id}/fold_{fold}/*.ckpt"
             )
         )
         fold_predictions = np.zeros((len(df_test), cfg.data_mode.num_classes, len(checkpoints)))
 
         for checkpoint_id, checkpoint_path in enumerate(checkpoints):
-            model = LitWheatModel.load_from_checkpoint(checkpoint_path)
+            model = LitWheatModel.load_from_checkpoint(checkpoint_path, hydra_cfg=cfg)
             model.eval().to(device)
 
             test_dataset = ZindiWheatDataset(
@@ -63,8 +63,8 @@ def run_model(cfg: DictConfig):
                 labels=None,
                 preprocess_function=model.preprocess,
                 augmentations=None,
-                input_shape=(cfg.training.input_size, cfg.training.input_size, 3),
-                crop_function=cfg.training.crop_method,
+                input_shape=(cfg.model.input_size[0], cfg.model.input_size[1], 3),
+                crop_function=cfg.model.crop_method,
             )
 
             if cfg.testing.tta:
@@ -130,7 +130,7 @@ def run_model(cfg: DictConfig):
     save_in_file_fast(
         ensemble_probs,
         file_name=os.path.join(
-            cfg.training.logs_dir, f"model_{cfg.training.model_id}/{filename}"
+            cfg.general.logs_dir, f"model_{cfg.model.model_id}/{filename}"
         ),
     )
 
@@ -149,7 +149,7 @@ def run_model(cfg: DictConfig):
         test["growth_stage"] = test["pred"]
 
         save_path = os.path.join(
-            cfg.training.logs_dir, f"model_{cfg.training.model_id}/bad_pseudo_fold_{cfg.testing.folds[0]}.csv"
+            cfg.general.logs_dir, f"model_{cfg.model.model_id}/bad_pseudo_fold_{cfg.testing.folds[0]}.csv"
         )
         logger.info(f"Saving pseudolabels to {save_path}")
 
@@ -157,7 +157,7 @@ def run_model(cfg: DictConfig):
     else:
         test["growth_stage"] = predictions
         save_path = os.path.join(
-            cfg.training.logs_dir, f"model_{cfg.training.model_id}/test_preds.csv"
+            cfg.general.logs_dir, f"model_{cfg.model.model_id}/test_preds.csv"
         )
         logger.info(f"Saving test predictions to {save_path}")
 

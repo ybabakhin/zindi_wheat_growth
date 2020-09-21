@@ -17,7 +17,7 @@ def run_model(cfg: DictConfig):
     print(cwd)
     logger.info(f"Config: {OmegaConf.to_yaml(cfg)}")
     os.environ["HYDRA_FULL_ERROR"] = "1"
-    seed_everything(cfg.training.seed)
+    seed_everything(cfg.general.seed)
 
     earlystopping_callback = hydra.utils.instantiate(cfg.callbacks.early_stopping)
     checkpoint_callback = hydra.utils.instantiate(cfg.callbacks.model_checkpoint)
@@ -36,7 +36,7 @@ def run_model(cfg: DictConfig):
 
         # Number of classes in bad labels does not equal to the number of classes in good labels
         fc_layer_name = (
-            "_fc" if cfg.training.architecture_name.startswith("efficientnet") else "_classifier"
+            "_fc" if cfg.model.architecture_name.startswith("efficientnet") else "_classifier"
         )
         if getattr(model.model, fc_layer_name).out_features != cfg.data_mode.num_classes:
             fc = torch.nn.Linear(
@@ -45,7 +45,7 @@ def run_model(cfg: DictConfig):
             setattr(model.model, fc_layer_name, fc)
     else:
         logger.info("Training the model from scratch")
-        model = LitWheatModel(hparams=cfg)
+        model = LitWheatModel(hparams=cfg, hydra_cfg=cfg)
 
     trainer = pl.Trainer(
         max_epochs=cfg.training.max_epochs,
@@ -55,7 +55,7 @@ def run_model(cfg: DictConfig):
         checkpoint_callback=checkpoint_callback,
         callbacks=[lr_logger],
         gradient_clip_val=0.5,
-        gpus=cfg.training.gpu_list,
+        gpus=cfg.general.gpu_list,
         fast_dev_run=False,
         distributed_backend="dp",
         precision=32,

@@ -2,6 +2,6 @@
 num_classes: 7
 label_quality: 1
 pseudolabels_path: ""
-train_csv: ${training.base_dir}data/Train_proc.csv
-data_dir: ${training.base_dir}data/Images/
+train_csv: ${general.base_dir}data/Train_proc.csv
+data_dir: ${general.base_dir}data/Images/
 rmse_multipliers: [1, 2, 3, 4, 5, 6, 7]
