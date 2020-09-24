@@ -1,29 +1,28 @@
 import gc
-import hydra
 import glob
-import os
-from pytorch_lightning import seed_everything
-import pandas as pd
-from torch.utils.data import DataLoader
-import torch
-import numpy as np
-from tqdm import tqdm
-from src.utils import preprocess_df
-from omegaconf import DictConfig
-from src.dataset import ZindiWheatDataset
-from src.lightning_models import LitWheatModel
-from sklearn.metrics import mean_squared_error
-from src.utils import save_in_file_fast
-import ttach as tta
 import logging
+
+import hydra
+import numpy as np
+import omegaconf
+import os
+import pandas as pd
+import pytorch_lightning as pl
+import torch
+import tqdm
+import ttach
+from sklearn import metrics
+from torch.utils import data as torch_data
+
+from src import dataset, lightning_models, utils
 
 logger = logging.getLogger(__name__)
 
 
 @hydra.main(config_path="conf", config_name="config")
-def run_model(cfg: DictConfig):
+def run_model(cfg: omegaconf.DictConfig):
     os.environ["HYDRA_FULL_ERROR"] = "1"
-    seed_everything(cfg.general.seed)
+    pl.seed_everything(cfg.general.seed)
 
     if cfg.testing.evaluate:
         test = pd.read_csv(cfg.data_mode.train_csv)
@@ -33,7 +32,7 @@ def run_model(cfg: DictConfig):
         test = test[test.label_quality == 1].reset_index(drop=True)
     else:
         test = pd.read_csv(cfg.testing.test_csv)
-    test = preprocess_df(test, data_dir=cfg.data_mode.data_dir)
+    test = utils.preprocess_df(test, data_dir=cfg.data_mode.data_dir)
     logger.info(f"Length of the test data: {len(test)}")
 
     device = torch.device("cuda")
@@ -48,17 +47,17 @@ def run_model(cfg: DictConfig):
             df_test = test
 
         checkpoints = glob.glob(
-            os.path.join(
-                cfg.general.logs_dir, f"model_{cfg.model.model_id}/fold_{fold}/*.ckpt"
-            )
+            os.path.join(cfg.general.logs_dir, f"model_{cfg.model.model_id}/fold_{fold}/*.ckpt")
         )
         fold_predictions = np.zeros((len(df_test), cfg.data_mode.num_classes, len(checkpoints)))
 
         for checkpoint_id, checkpoint_path in enumerate(checkpoints):
-            model = LitWheatModel.load_from_checkpoint(checkpoint_path, hydra_cfg=cfg)
+            model = lightning_models.LitWheatModel.load_from_checkpoint(
+                checkpoint_path, hydra_cfg=cfg
+            )
             model.eval().to(device)
 
-            test_dataset = ZindiWheatDataset(
+            test_dataset = dataset.ZindiWheatDataset(
                 images=df_test.path.values,
                 labels=None,
                 preprocess_function=model.preprocess,
@@ -69,21 +68,21 @@ def run_model(cfg: DictConfig):
 
             if cfg.testing.tta:
                 transforms = [
-                    tta.HorizontalFlip(),
-                    # tta.VerticalFlip(),
-                    # tta.Resize([(256, 256), (384, 384), (512, 512)]),
-                    # tta.Scale(scales=[1, 2]),
-                    # tta.Multiply(factors=[0.9, 1, 1.1]),
+                    ttach.HorizontalFlip(),
+                    # ttach.VerticalFlip(),
+                    # ttach.Resize([(256, 256), (384, 384), (512, 512)]),
+                    # ttach.Scale(scales=[1, 2]),
+                    # ttach.Multiply(factors=[0.9, 1, 1.1]),
                 ]
                 if cfg.model.crop_method == "crop":
-                    transforms.append(tta.FiveCrops(crop_height=160, crop_width=512))
-                transforms = tta.Compose(transforms)
-                model = tta.ClassificationTTAWrapper(model, transforms)
+                    transforms.append(ttach.FiveCrops(crop_height=160, crop_width=512))
+                transforms = ttach.Compose(transforms)
+                model = ttach.ClassificationTTAWrapper(model, transforms)
 
             if torch.cuda.device_count() > 1:
                 model = torch.nn.DataParallel(model)
 
-            test_loader = DataLoader(
+            test_loader = torch_data.DataLoader(
                 test_dataset,
                 batch_size=cfg.training.batch_size,
                 num_workers=cfg.general.num_workers,
@@ -92,7 +91,7 @@ def run_model(cfg: DictConfig):
             )
 
             with torch.no_grad():
-                tq = tqdm(test_loader, total=len(test_loader))
+                tq = tqdm.tqdm(test_loader, total=len(test_loader))
                 for idx, data in enumerate(tq):
                     images = data["image"]
                     images = images.to(device)
@@ -127,11 +126,9 @@ def run_model(cfg: DictConfig):
         filename = "pseudo_probs.pkl" if cfg.testing.pseudolabels else "test_probs.pkl"
 
     ensemble_probs = dict(zip(test.UID.values, probs))
-    save_in_file_fast(
+    utils.save_in_file_fast(
         ensemble_probs,
-        file_name=os.path.join(
-            cfg.general.logs_dir, f"model_{cfg.model.model_id}/{filename}"
-        ),
+        file_name=os.path.join(cfg.general.logs_dir, f"model_{cfg.model.model_id}/{filename}"),
     )
 
     multipliers = np.array(cfg.data_mode.rmse_multipliers)
@@ -140,7 +137,7 @@ def run_model(cfg: DictConfig):
     predictions = np.clip(probs, min(multipliers), max(multipliers))
 
     if cfg.testing.evaluate:
-        rmse = np.sqrt(mean_squared_error(predictions, test.growth_stage.values))
+        rmse = np.sqrt(metrics.mean_squared_error(predictions, test.growth_stage.values))
         logger.info(f"OOF VALIDATION SCORE: {rmse:.5f}")
     elif cfg.testing.pseudolabels:
         test["pred"] = predictions
@@ -149,7 +146,8 @@ def run_model(cfg: DictConfig):
         test["growth_stage"] = test["pred"]
 
         save_path = os.path.join(
-            cfg.general.logs_dir, f"model_{cfg.model.model_id}/bad_pseudo_fold_{cfg.testing.folds[0]}.csv"
+            cfg.general.logs_dir,
+            f"model_{cfg.model.model_id}/bad_pseudo_fold_{cfg.testing.folds[0]}.csv",
         )
         logger.info(f"Saving pseudolabels to {save_path}")
 

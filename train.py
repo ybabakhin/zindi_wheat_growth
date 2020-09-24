@@ -1,23 +1,24 @@
-import hydra
-import os
-import torch
-from src.lightning_models import LitWheatModel
-import pytorch_lightning as pl
-from pytorch_lightning import seed_everything
-from omegaconf import DictConfig, OmegaConf
 import glob
 import logging
+
+import hydra
+import omegaconf
+import os
+import pytorch_lightning as pl
+import torch
+
+from src.lightning_models import LitWheatModel
 
 logger = logging.getLogger(__name__)
 
 
 @hydra.main(config_path="conf", config_name="config")
-def run_model(cfg: DictConfig):
+def run_model(cfg: omegaconf.DictConfig):
     cwd = os.getcwd()
     print(cwd)
-    logger.info(f"Config: {OmegaConf.to_yaml(cfg)}")
+    logger.info(f"Config: {omegaconf.OmegaConf.to_yaml(cfg)}")
     os.environ["HYDRA_FULL_ERROR"] = "1"
-    seed_everything(cfg.general.seed)
+    pl.seed_everything(cfg.general.seed)
 
     earlystopping_callback = hydra.utils.instantiate(cfg.callbacks.early_stopping)
     checkpoint_callback = hydra.utils.instantiate(cfg.callbacks.model_checkpoint)

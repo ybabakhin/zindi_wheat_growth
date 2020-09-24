@@ -1,9 +1,9 @@
 import pandas as pd
-from sklearn.model_selection import StratifiedKFold
+from sklearn import model_selection
 
 
-def split_data(df):
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=24)
+def split_data(df: pd.DataFrame) -> pd.DataFrame:
+    skf = model_selection.StratifiedKFold(n_splits=5, shuffle=True, random_state=24)
     for fold, (idxT, idxV) in enumerate(skf.split(df, df.growth_stage)):
         df.iloc[idxV, df.columns.get_loc("fold")] = fold
 

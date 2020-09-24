@@ -1,26 +1,31 @@
+import glob
+import logging
+from argparse import Namespace
+from typing import Union
+
+import cnn_finetune
+import efficientnet_pytorch
+import hydra
+import numpy as np
+import omegaconf
+import os
+import pandas as pd
 import pytorch_lightning as pl
 import torch
-from torch.utils.data import DataLoader
-import pandas as pd
-import numpy as np
-import torch.nn as nn
-from cnn_finetune import make_model as make_pretrained_model
-from efficientnet_pytorch import EfficientNet
+from sklearn import metrics
+from torch import nn
+from torch.utils import data as torch_data
 from torchvision import transforms
-from src.dataset import ZindiWheatDataset
-from src.augmentations import Augmentations
-from sklearn.metrics import mean_squared_error
-from src.utils import preprocess_df
-import hydra
-import glob
-import os
-import logging
+
+from src import augmentations, dataset, utils
 
 logger = logging.getLogger(__name__)
 
 
 class LitWheatModel(pl.LightningModule):
-    def __init__(self, hparams=None, hydra_cfg=None):
+    def __init__(
+        self, hparams: Union[dict, Namespace, str] = None, hydra_cfg: omegaconf.DictConfig = None
+    ):
         super(LitWheatModel, self).__init__()
 
         self.cfg = hydra_cfg
@@ -44,7 +49,7 @@ class LitWheatModel(pl.LightningModule):
             )
 
         if self.cfg.model.architecture_name.startswith("efficientnet"):
-            self.model = EfficientNet.from_pretrained(
+            self.model = efficientnet_pytorch.EfficientNet.from_pretrained(
                 self.cfg.model.architecture_name, num_classes=init_model_num_classes
             )
 
@@ -55,7 +60,7 @@ class LitWheatModel(pl.LightningModule):
             std = [0.229, 0.224, 0.225]
 
         else:
-            self.model = make_pretrained_model(
+            self.model = cnn_finetune.make_model(
                 self.cfg.model.architecture_name,
                 num_classes=init_model_num_classes,
                 pretrained=True,
@@ -79,9 +84,9 @@ class LitWheatModel(pl.LightningModule):
         x = self.model(x)
         return x
 
-    def setup(self, stage="fit"):
+    def setup(self, stage: str = "fit") -> None:
         train = pd.read_csv(self.cfg.data_mode.train_csv)
-        train = preprocess_df(train, data_dir=self.cfg.data_mode.data_dir)
+        train = utils.preprocess_df(train, data_dir=self.cfg.data_mode.data_dir)
         train["label"] = train["growth_stage"]
         train = train[train.label_quality >= self.cfg.data_mode.label_quality].copy()
 
@@ -103,7 +108,7 @@ class LitWheatModel(pl.LightningModule):
 
         if self.cfg.data_mode.pseudolabels_path != "":
             pseudo = pd.read_csv(self.cfg.data_mode.pseudolabels_path)
-            pseudo = preprocess_df(pseudo, data_dir=self.cfg.data_mode.data_dir)
+            pseudo = utils.preprocess_df(pseudo, data_dir=self.cfg.data_mode.data_dir)
             pseudo["fold"] = -1
             if not self.cfg.model.regression:
                 pseudo["label"] = pseudo["growth_stage"].map(
@@ -121,9 +126,11 @@ class LitWheatModel(pl.LightningModule):
         )
 
     def train_dataloader(self):
-        augs = Augmentations.get(self.cfg.training.augmentations)(*self.cfg.model.input_size)
+        augs = augmentations.Augmentations.get(self.cfg.training.augmentations)(
+            *self.cfg.model.input_size
+        )
 
-        self.train_dataset = ZindiWheatDataset(
+        self.train_dataset = dataset.ZindiWheatDataset(
             images=self.df_train.path.values,
             labels=self.df_train.label.values,
             preprocess_function=self.preprocess,
@@ -132,7 +139,7 @@ class LitWheatModel(pl.LightningModule):
             crop_function=self.cfg.model.crop_method,
         )
 
-        train_loader = DataLoader(
+        train_loader = torch_data.DataLoader(
             self.train_dataset,
             batch_size=self.cfg.training.batch_size,
             num_workers=self.cfg.general.num_workers,
@@ -142,7 +149,7 @@ class LitWheatModel(pl.LightningModule):
         return train_loader
 
     def val_dataloader(self):
-        self.valid_dataset = ZindiWheatDataset(
+        self.valid_dataset = dataset.ZindiWheatDataset(
             images=self.df_valid.path.values,
             labels=self.df_valid.label.values,
             preprocess_function=self.preprocess,
@@ -151,7 +158,7 @@ class LitWheatModel(pl.LightningModule):
             crop_function=self.cfg.model.crop_method,
         )
 
-        valid_loader = DataLoader(
+        valid_loader = torch_data.DataLoader(
             self.valid_dataset,
             batch_size=self.cfg.training.batch_size,
             num_workers=self.cfg.general.num_workers,
@@ -218,7 +225,7 @@ class LitWheatModel(pl.LightningModule):
 
         labels = self.df_valid.growth_stage.values
         if len(labels) == len(preds):
-            rmse = np.sqrt(mean_squared_error(preds, labels))
+            rmse = np.sqrt(metrics.mean_squared_error(preds, labels))
         else:
             rmse = 0
 

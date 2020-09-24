@@ -1,8 +1,10 @@
+from typing import Callable
+
 import albumentations as albu
 import cv2
 
 
-def base(input_h, input_w):
+def base(input_h: int, input_w: int) -> albu.Compose:
     augmentations = albu.Compose(
         [
             albu.HorizontalFlip(p=0.5),
@@ -39,7 +41,7 @@ class Augmentations:
         return sorted(cls._augmentations.keys())
 
     @classmethod
-    def get(cls, name):
+    def get(cls, name: str) -> Callable:
         """
         Access to augmentation strategies
         Args:

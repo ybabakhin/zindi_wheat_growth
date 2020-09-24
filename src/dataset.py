@@ -1,17 +1,21 @@
-from torch.utils.data import Dataset
-from albumentations import Resize, Compose, PadIfNeeded, RandomCrop
+from typing import Tuple, Dict, Optional, Callable, Any, Sequence
+
+import albumentations as albu
 import cv2
+import numpy as np
+import torch
+from torch.utils import data as torch_data
 
 
-class ZindiWheatDataset(Dataset):
+class ZindiWheatDataset(torch_data.Dataset):
     def __init__(
         self,
-        images,
-        labels=None,
-        preprocess_function=None,
-        augmentations=None,
-        input_shape=(128, 128, 3),
-        crop_function="resize",
+        images: Sequence[str],
+        labels: Optional[Sequence[int]],
+        preprocess_function: Optional[Callable[[np.ndarray], torch.Tensor]],
+        augmentations: Optional[albu.Compose],
+        input_shape: Tuple[int, int, int] = (128, 128, 3),
+        crop_function: str = "resize",
     ):
         self.images = images
         self.labels = labels
@@ -20,11 +24,11 @@ class ZindiWheatDataset(Dataset):
         self.input_shape = input_shape
         self.crop_function = crop_function
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.images)
 
-    def __getitem__(self, image_index):
-        sample = {}
+    def __getitem__(self, image_index: int) -> Dict[str, Any]:
+        sample = dict()
 
         # Read data
         sample["image"] = self._read_image(image_index)
@@ -47,27 +51,27 @@ class ZindiWheatDataset(Dataset):
 
         return sample
 
-    def _read_image(self, image_index):
+    def _read_image(self, image_index: int) -> np.array:
         img = cv2.imread(self.images[image_index])
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         return img
 
-    def _read_label(self, image_index, sample):
+    def _read_label(self, image_index: int, sample: Dict[str, Any]) -> Dict[str, Any]:
         sample["label"] = self.labels[image_index]
         return sample
 
-    def _crop_data(self, sample):
+    def _crop_data(self, sample: Dict[str, Any]) -> Dict[str, Any]:
 
         if self.crop_function == "resize":
-            aug = Compose(
+            aug = albu.Compose(
                 [
-                    PadIfNeeded(
+                    albu.PadIfNeeded(
                         min_height=sample["image"].shape[1] // 2,
                         min_width=sample["image"].shape[1],
                         border_mode=cv2.BORDER_CONSTANT,
                         always_apply=True,
                     ),
-                    Resize(
+                    albu.Resize(
                         height=self.input_shape[0],
                         width=self.input_shape[1],
                         interpolation=cv2.INTER_LINEAR,
@@ -77,31 +81,27 @@ class ZindiWheatDataset(Dataset):
             )
         elif self.crop_function == "crop":
             if self.labels is not None:
-                aug = Compose(
+                aug = albu.Compose(
                     [
-                        PadIfNeeded(
+                        albu.PadIfNeeded(
                             min_height=128,
                             min_width=256,
                             border_mode=cv2.BORDER_CONSTANT,
                             always_apply=True,
                         ),
-                        RandomCrop(
-                            height=128,
-                            width=256,
-                            always_apply=True,
-                        ),
+                        albu.RandomCrop(height=128, width=256, always_apply=True),
                     ]
                 )
             else:
-                aug = Compose(
+                aug = albu.Compose(
                     [
-                        PadIfNeeded(
+                        albu.PadIfNeeded(
                             min_height=128,
                             min_width=256,
                             border_mode=cv2.BORDER_CONSTANT,
                             always_apply=True,
                         ),
-                        Resize(
+                        albu.Resize(
                             height=256,
                             width=512,
                             interpolation=cv2.INTER_LINEAR,
@@ -114,10 +114,10 @@ class ZindiWheatDataset(Dataset):
 
         return aug(**sample)
 
-    def _augment_data(self, sample):
+    def _augment_data(self, sample: Dict[str, Any]) -> Dict[str, Any]:
         sample = self.augmentations(**sample)
         return sample
 
-    def _preprocess_data(self, sample):
+    def _preprocess_data(self, sample: Dict[str, Any]) -> Dict[str, Any]:
         sample["image"] = self.preprocess_function(sample["image"])
         return sample
