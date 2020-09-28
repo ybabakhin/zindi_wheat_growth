@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional, List
 
 import albumentations as albu
 import cv2
@@ -18,7 +18,9 @@ def base(input_h: int, input_w: int) -> albu.Compose:
                 fill_value=255,
                 p=0.5,
             ),
-            albu.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
+            albu.RandomBrightnessContrast(
+                brightness_limit=0.2, contrast_limit=0.2, p=0.5
+            ),
             albu.ShiftScaleRotate(
                 shift_limit=0.2,
                 scale_limit=0.2,
@@ -37,11 +39,11 @@ class Augmentations:
     _augmentations = {"base": base}
 
     @classmethod
-    def names(cls):
+    def names(cls) -> List[str]:
         return sorted(cls._augmentations.keys())
 
     @classmethod
-    def get(cls, name: str) -> Callable:
+    def get(cls, name: str) -> Optional[Callable[[int, int], albu.Compose]]:
         """
         Access to augmentation strategies
         Args:

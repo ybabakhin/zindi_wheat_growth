@@ -13,13 +13,13 @@ def split_data(df: pd.DataFrame) -> pd.DataFrame:
 if __name__ == "__main__":
     train = pd.read_csv("../data/Train.csv")
     train["fold"] = -1
-    all_train = []
+    all_train_list = []
 
     for label_quality in [1, 2]:
         df = train.loc[train.label_quality == label_quality].copy()
         df = split_data(df)
-        all_train.append(df)
+        all_train_list.append(df)
 
-    all_train = pd.concat(all_train).sample(frac=1, random_state=13)
+    all_train = pd.concat(all_train_list).sample(frac=1, random_state=13)
 
     all_train.to_csv("../data/Train_proc.csv", index=False)

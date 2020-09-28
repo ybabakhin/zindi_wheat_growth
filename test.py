@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 @hydra.main(config_path="conf", config_name="config")
-def run_model(cfg: omegaconf.DictConfig):
+def run_model(cfg: omegaconf.DictConfig) -> None:
     os.environ["HYDRA_FULL_ERROR"] = "1"
     pl.seed_everything(cfg.general.seed)
 
@@ -47,9 +47,13 @@ def run_model(cfg: omegaconf.DictConfig):
             df_test = test
 
         checkpoints = glob.glob(
-            os.path.join(cfg.general.logs_dir, f"model_{cfg.model.model_id}/fold_{fold}/*.ckpt")
+            os.path.join(
+                cfg.general.logs_dir, f"model_{cfg.model.model_id}/fold_{fold}/*.ckpt"
+            )
         )
-        fold_predictions = np.zeros((len(df_test), cfg.data_mode.num_classes, len(checkpoints)))
+        fold_predictions = np.zeros(
+            (len(df_test), cfg.data_mode.num_classes, len(checkpoints))
+        )
 
         for checkpoint_id, checkpoint_path in enumerate(checkpoints):
             model = lightning_models.LitWheatModel.load_from_checkpoint(
@@ -63,7 +67,7 @@ def run_model(cfg: omegaconf.DictConfig):
                 preprocess_function=model.preprocess,
                 augmentations=None,
                 input_shape=(cfg.model.input_size[0], cfg.model.input_size[1], 3),
-                crop_function=cfg.model.crop_method,
+                crop_method=cfg.model.crop_method,
             )
 
             if cfg.testing.tta:
@@ -102,7 +106,9 @@ def run_model(cfg: omegaconf.DictConfig):
                     preds = preds.cpu().detach().numpy()
 
                     fold_predictions[
-                        idx * cfg.training.batch_size : (idx + 1) * cfg.training.batch_size,
+                        idx
+                        * cfg.training.batch_size : (idx + 1)
+                        * cfg.training.batch_size,
                         :,
                         checkpoint_id,
                     ] = preds
@@ -128,7 +134,9 @@ def run_model(cfg: omegaconf.DictConfig):
     ensemble_probs = dict(zip(test.UID.values, probs))
     utils.save_in_file_fast(
         ensemble_probs,
-        file_name=os.path.join(cfg.general.logs_dir, f"model_{cfg.model.model_id}/{filename}"),
+        file_name=os.path.join(
+            cfg.general.logs_dir, f"model_{cfg.model.model_id}/{filename}"
+        ),
     )
 
     multipliers = np.array(cfg.data_mode.rmse_multipliers)
@@ -137,21 +145,24 @@ def run_model(cfg: omegaconf.DictConfig):
     predictions = np.clip(probs, min(multipliers), max(multipliers))
 
     if cfg.testing.evaluate:
-        rmse = np.sqrt(metrics.mean_squared_error(predictions, test.growth_stage.values))
+        rmse = np.sqrt(
+            metrics.mean_squared_error(predictions, test.growth_stage.values)
+        )
         logger.info(f"OOF VALIDATION SCORE: {rmse:.5f}")
     elif cfg.testing.pseudolabels:
         test["pred"] = predictions
-        # Select only matched labels
-        test = test[np.abs(test.pred - test.growth_stage) < 2].copy()
-        test["growth_stage"] = test["pred"]
-
-        save_path = os.path.join(
-            cfg.general.logs_dir,
-            f"model_{cfg.model.model_id}/bad_pseudo_fold_{cfg.testing.folds[0]}.csv",
-        )
+        if len(cfg.testing.folds) == 1:
+            save_path = os.path.join(
+                cfg.general.logs_dir,
+                f"model_{cfg.model.model_id}/bad_pseudo_fold_{cfg.testing.folds[0]}.csv",
+            )
+        else:
+            save_path = os.path.join(
+                cfg.general.logs_dir, f"model_{cfg.model.model_id}/bad_pseudo.csv"
+            )
         logger.info(f"Saving pseudolabels to {save_path}")
 
-        test[["UID", "growth_stage"]].to_csv(save_path, index=False)
+        test[["UID", "growth_stage", "pred"]].to_csv(save_path, index=False)
     else:
         test["growth_stage"] = predictions
         save_path = os.path.join(

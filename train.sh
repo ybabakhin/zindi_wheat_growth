@@ -72,45 +72,45 @@
 #scheduler=plateau \
 #training.pretrain_dir='/data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lightning_logs/model_925/fold_${training.fold}/'
 
-#python train.py --multirun \
-#model.model_id=180 \
-#training.fold=0,1,2,3,4 \
-#model.architecture_name=resnet101 \
-#training.max_epochs=20 \
-#scheduler=plateau \
-#training.pretrain_dir='/data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lightning_logs/model_177/fold_${training.fold}/' \
-#training.batch_size=16
+#python test.py --multirun \
+#model.model_id=166 \
+#model.architecture_name=resnet50 \
+#testing.evaluate=false \
+#testing.pseudolabels=true \
+#testing.folds=[0,1,2,3,4]
 #
+#python test.py --multirun \
+#model.model_id=166 \
+#model.architecture_name=resnet50 \
+#testing.evaluate=false \
+#testing.pseudolabels=true \
+#testing.folds=[0],[1],[2],[3],[4]
+
 #python train.py --multirun \
-#model.model_id=927 \
-#model.architecture_name=densenet169 \
+#model.model_id=942 \
+#model.architecture_name=resnet50 \
 #training.fold=0,1,2,3,4 \
 #data_mode=bad_quality \
 #training.max_epochs=10 \
 #callbacks.model_checkpoint.save_last=true \
-#scheduler=plateau
+#scheduler=plateau \
+#training.batch_size=24
 #
 #python train.py --multirun \
-#model.model_id=182 \
+#model.model_id=205 \
 #training.fold=0,1,2,3,4 \
-#model.architecture_name=densenet169 \
+#model.architecture_name=resnet50 \
 #training.max_epochs=50 \
 #scheduler=plateau \
-#training.pretrain_dir='/data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lightning_logs/model_927/fold_${training.fold}/'
-#
+#training.pretrain_dir='/data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lightning_logs/model_942/fold_${training.fold}/' \
+#training.batch_size=24
+
 #python train.py --multirun \
-#model.model_id=928 \
-#model.architecture_name=resnext50_32x4d \
+#model.model_id=206 \
 #training.fold=0,1,2,3,4 \
-#data_mode=bad_quality \
-#training.max_epochs=10 \
-#callbacks.model_checkpoint.save_last=true \
-#scheduler=plateau
-#
-#python train.py --multirun \
-#model.model_id=183 \
-#training.fold=0,1,2,3,4 \
-#model.architecture_name=resnext50_32x4d \
+#model.architecture_name=resnet50 \
 #training.max_epochs=50 \
 #scheduler=plateau \
-#training.pretrain_dir='/data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lightning_logs/model_928/fold_${training.fold}/'
+#training.pretrain_dir='/data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lightning_logs/model_923/fold_${training.fold}/' \
+#training.cutmix=0.4 \
+#model.input_size=[256,256]

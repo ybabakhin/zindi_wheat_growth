@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 @hydra.main(config_path="conf", config_name="config")
-def run_model(cfg: omegaconf.DictConfig):
+def run_model(cfg: omegaconf.DictConfig) -> None:
     cwd = os.getcwd()
     print(cwd)
     logger.info(f"Config: {omegaconf.OmegaConf.to_yaml(cfg)}")
@@ -30,18 +30,26 @@ def run_model(cfg: omegaconf.DictConfig):
         if os.path.exists(last_path):
             pretrain_path = last_path
         else:
-            pretrain_path = glob.glob(os.path.join(cfg.training.pretrain_dir, "*.ckpt"))[0]
+            pretrain_path = glob.glob(
+                os.path.join(cfg.training.pretrain_dir, "*.ckpt")
+            )[0]
         logger.info(f"Loading the pre-trained model from: {pretrain_path}")
 
         model = LitWheatModel.load_from_checkpoint(pretrain_path, hydra_cfg=cfg)
 
         # Number of classes in bad labels does not equal to the number of classes in good labels
         fc_layer_name = (
-            "_fc" if cfg.model.architecture_name.startswith("efficientnet") else "_classifier"
+            "_fc"
+            if cfg.model.architecture_name.startswith("efficientnet")
+            else "_classifier"
         )
-        if getattr(model.model, fc_layer_name).out_features != cfg.data_mode.num_classes:
+        if (
+            getattr(model.model, fc_layer_name).out_features
+            != cfg.data_mode.num_classes
+        ):
             fc = torch.nn.Linear(
-                getattr(model.model, fc_layer_name).in_features, cfg.data_mode.num_classes
+                getattr(model.model, fc_layer_name).in_features,
+                cfg.data_mode.num_classes,
             )
             setattr(model.model, fc_layer_name, fc)
     else:

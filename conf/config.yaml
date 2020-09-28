@@ -12,7 +12,7 @@ general:
   gpu_list: [0, 1]
 
 model:
-  model_id: 1
+  model_id: 206
   regression: false
   architecture_name: resnet50
   dropout: 0.3
@@ -23,6 +23,8 @@ training:
   batch_size: 32
   lr: 1e-5
   augmentations: base
+  mixup: 0.
+  cutmix: 0.
   max_epochs: 20
   fold: 0
   val_metric: val_rmse

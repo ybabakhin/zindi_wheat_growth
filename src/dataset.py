@@ -11,18 +11,18 @@ class ZindiWheatDataset(torch_data.Dataset):
     def __init__(
         self,
         images: Sequence[str],
-        labels: Optional[Sequence[int]],
-        preprocess_function: Optional[Callable[[np.ndarray], torch.Tensor]],
-        augmentations: Optional[albu.Compose],
+        labels: Optional[Sequence[int]] = None,
+        preprocess_function: Optional[Callable[[np.ndarray], torch.Tensor]] = None,
+        augmentations: Optional[albu.Compose] = None,
         input_shape: Tuple[int, int, int] = (128, 128, 3),
-        crop_function: str = "resize",
-    ):
+        crop_method: str = "resize",
+    ) -> None:
         self.images = images
         self.labels = labels
         self.preprocess_function = preprocess_function
         self.augmentations = augmentations
         self.input_shape = input_shape
-        self.crop_function = crop_function
+        self.crop_method = crop_method
 
     def __len__(self) -> int:
         return len(self.images)
@@ -38,7 +38,7 @@ class ZindiWheatDataset(torch_data.Dataset):
             sample = self._read_label(image_index, sample)
 
         # Crop data
-        if self.crop_function is not None:
+        if self.crop_method is not None:
             sample = self._crop_data(sample)
 
         # Augment data
@@ -51,7 +51,7 @@ class ZindiWheatDataset(torch_data.Dataset):
 
         return sample
 
-    def _read_image(self, image_index: int) -> np.array:
+    def _read_image(self, image_index: int) -> np.ndarray:
         img = cv2.imread(self.images[image_index])
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         return img
@@ -62,7 +62,7 @@ class ZindiWheatDataset(torch_data.Dataset):
 
     def _crop_data(self, sample: Dict[str, Any]) -> Dict[str, Any]:
 
-        if self.crop_function == "resize":
+        if self.crop_method == "resize":
             aug = albu.Compose(
                 [
                     albu.PadIfNeeded(
@@ -79,7 +79,7 @@ class ZindiWheatDataset(torch_data.Dataset):
                     ),
                 ]
             )
-        elif self.crop_function == "crop":
+        elif self.crop_method == "crop":
             if self.labels is not None:
                 aug = albu.Compose(
                     [
@@ -110,7 +110,7 @@ class ZindiWheatDataset(torch_data.Dataset):
                     ]
                 )
         else:
-            raise ValueError(f"{self.crop_function} cropping strategy is not available")
+            raise ValueError(f"{self.crop_method} cropping strategy is not available")
 
         return aug(**sample)
 

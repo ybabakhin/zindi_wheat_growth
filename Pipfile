@@ -4,13 +4,12 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+mypy = "*"
 
 [packages]
 torch = "==1.6.0"
 pandas = "*"
 numpy = "*"
-sklearn = "*"
-kaggle = "*"
 scikit-learn = "*"
 xgboost = "*"
 lightgbm = "*"
