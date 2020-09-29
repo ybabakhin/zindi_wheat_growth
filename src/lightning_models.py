@@ -173,6 +173,7 @@ class LitWheatModel(pl.LightningModule):
             augmentations=augs,
             input_shape=(self.cfg.model.input_size[0], self.cfg.model.input_size[1], 3),
             crop_method=self.cfg.model.crop_method,
+            augment_label=self.cfg.training.label_augmentation,
         )
 
         train_loader = torch_data.DataLoader(

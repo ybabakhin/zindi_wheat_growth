@@ -106,11 +106,50 @@
 #training.batch_size=24
 
 #python train.py --multirun \
-#model.model_id=206 \
+#model.model_id=944 \
+#model.architecture_name=resnet101 \
 #training.fold=0,1,2,3,4 \
-#model.architecture_name=resnet50 \
+#data_mode=bad_quality \
+#training.max_epochs=10 \
+#callbacks.model_checkpoint.save_last=true \
+#scheduler=plateau \
+#training.label_augmentation=0.2
+#
+#python train.py --multirun \
+#model.model_id=211 \
+#training.fold=0,1,2,3,4 \
+#model.architecture_name=resnet101 \
 #training.max_epochs=50 \
 #scheduler=plateau \
-#training.pretrain_dir='/data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lightning_logs/model_923/fold_${training.fold}/' \
-#training.cutmix=0.4 \
-#model.input_size=[256,256]
+#training.pretrain_dir='/data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lightning_logs/model_944/fold_${training.fold}/' \
+#training.label_augmentation=0.1
+#
+#python train.py --multirun \
+#model.model_id=215 \
+#training.fold=0,1,2,3,4 \
+#model.architecture_name=resnet50 \
+#training.max_epochs=20 \
+#scheduler=plateau \
+#training.pretrain_dir='/data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lightning_logs/model_210/fold_${training.fold}/' \
+#training.batch_size=24 \
+#model.input_size=[512,512]
+
+python train.py --multirun \
+model.model_id=216 \
+training.fold=0,1,2,3,4 \
+model.architecture_name=resnet101 \
+training.max_epochs=20 \
+scheduler=plateau \
+training.pretrain_dir='/data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lightning_logs/model_211/fold_${training.fold}/' \
+training.batch_size=16 \
+model.input_size=[512,512]
+
+python train.py --multirun \
+model.model_id=217 \
+training.fold=0,1,2,3,4 \
+model.architecture_name=resnext50_32x4d \
+training.max_epochs=20 \
+scheduler=plateau \
+training.pretrain_dir='/data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/lightning_logs/model_214/fold_${training.fold}/' \
+training.batch_size=20 \
+model.input_size=[512,512]

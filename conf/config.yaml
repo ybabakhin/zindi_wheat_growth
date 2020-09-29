@@ -12,11 +12,11 @@ general:
   gpu_list: [0, 1]
 
 model:
-  model_id: 206
+  model_id: 217
   regression: false
-  architecture_name: resnet50
+  architecture_name: resnext50_32x4d
   dropout: 0.3
-  input_size: [256, 256]
+  input_size: [512, 512]
   crop_method: resize
 
 training:
@@ -25,6 +25,7 @@ training:
   augmentations: base
   mixup: 0.
   cutmix: 0.
+  label_augmentation: 0.
   max_epochs: 20
   fold: 0
   val_metric: val_rmse

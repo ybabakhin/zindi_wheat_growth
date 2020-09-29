@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import torch
 from torch.utils import data as torch_data
+import random
 
 
 class ZindiWheatDataset(torch_data.Dataset):
@@ -16,6 +17,7 @@ class ZindiWheatDataset(torch_data.Dataset):
         augmentations: Optional[albu.Compose] = None,
         input_shape: Tuple[int, int, int] = (128, 128, 3),
         crop_method: str = "resize",
+        augment_label: float = 0.,
     ) -> None:
         self.images = images
         self.labels = labels
@@ -23,6 +25,7 @@ class ZindiWheatDataset(torch_data.Dataset):
         self.augmentations = augmentations
         self.input_shape = input_shape
         self.crop_method = crop_method
+        self.augment_label = augment_label
 
     def __len__(self) -> int:
         return len(self.images)
@@ -57,7 +60,16 @@ class ZindiWheatDataset(torch_data.Dataset):
         return img
 
     def _read_label(self, image_index: int, sample: Dict[str, Any]) -> Dict[str, Any]:
-        sample["label"] = self.labels[image_index]
+        aug_label = self.labels[image_index]
+
+        if self.augment_label > 0:
+            p = random.random()
+            if p < self.augment_label / 2:
+                aug_label = max(0, aug_label - 1)
+            elif p < self.augment_label:
+                aug_label = min(max(self.labels), aug_label + 1)
+
+        sample["label"] = aug_label
         return sample
 
     def _crop_data(self, sample: Dict[str, Any]) -> Dict[str, Any]:
