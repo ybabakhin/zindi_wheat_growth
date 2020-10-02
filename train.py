@@ -14,8 +14,6 @@ logger = logging.getLogger(__name__)
 
 @hydra.main(config_path="conf", config_name="config")
 def run_model(cfg: omegaconf.DictConfig) -> None:
-    cwd = os.getcwd()
-    print(cwd)
     logger.info(f"Config: {omegaconf.OmegaConf.to_yaml(cfg)}")
     os.environ["HYDRA_FULL_ERROR"] = "1"
     pl.seed_everything(cfg.general.seed)

@@ -12,11 +12,11 @@ general:
   gpu_list: [0, 1]
 
 model:
-  model_id: 217
+  model_id: 224
   regression: false
-  architecture_name: resnext50_32x4d
+  architecture_name: resnet50
   dropout: 0.3
-  input_size: [512, 512]
+  input_size: [256, 256]
   crop_method: resize
 
 training:
@@ -35,9 +35,11 @@ training:
 testing:
   folds: [0, 1, 2, 3, 4]
   test_csv: ${general.base_dir}data/SampleSubmission.csv
-  evaluate: true
+  mode: valid
   tta: true
-  pseudolabels: false
+
+ensemble:
+  model_ids: [224, 226, 228]
 
 hydra:
   run:

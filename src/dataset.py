@@ -17,7 +17,7 @@ class ZindiWheatDataset(torch_data.Dataset):
         augmentations: Optional[albu.Compose] = None,
         input_shape: Tuple[int, int, int] = (128, 128, 3),
         crop_method: str = "resize",
-        augment_label: float = 0.,
+        augment_label: float = 0.0,
     ) -> None:
         self.images = images
         self.labels = labels
