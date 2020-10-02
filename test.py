@@ -14,7 +14,10 @@ import ttach
 from sklearn import metrics
 from torch.utils import data as torch_data
 
-from src import dataset, lightning_models, utils
+from src import dataset
+from src import lightning_models
+from src import tta
+from src import utils
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +76,12 @@ def run_model(cfg: omegaconf.DictConfig) -> None:
             if cfg.testing.tta:
                 transforms = [ttach.HorizontalFlip()]
                 if cfg.model.crop_method == "crop":
-                    transforms.append(ttach.FiveCrops(crop_height=160, crop_width=512))
+                    transforms.append(
+                        tta.ThreeCrops(
+                            crop_height=cfg.model.input_size[0],
+                            crop_width=cfg.model.input_size[1],
+                        )
+                    )
                 transforms = ttach.Compose(transforms)
                 model = ttach.ClassificationTTAWrapper(model, transforms)
 

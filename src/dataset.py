@@ -3,9 +3,9 @@ from typing import Tuple, Dict, Optional, Callable, Any, Sequence
 import albumentations as albu
 import cv2
 import numpy as np
+import random
 import torch
 from torch.utils import data as torch_data
-import random
 
 
 class ZindiWheatDataset(torch_data.Dataset):
@@ -92,35 +92,30 @@ class ZindiWheatDataset(torch_data.Dataset):
                 ]
             )
         elif self.crop_method == "crop":
+            aug_list = [
+                albu.PadIfNeeded(
+                    min_height=sample["image"].shape[1] // 2,
+                    min_width=sample["image"].shape[1],
+                    border_mode=cv2.BORDER_CONSTANT,
+                    always_apply=True,
+                ),
+                albu.Resize(
+                    height=self.input_shape[0],
+                    width=self.input_shape[1] * 2,
+                    interpolation=cv2.INTER_LINEAR,
+                    always_apply=True,
+                ),
+            ]
+
             if self.labels is not None:
-                aug = albu.Compose(
-                    [
-                        albu.PadIfNeeded(
-                            min_height=128,
-                            min_width=256,
-                            border_mode=cv2.BORDER_CONSTANT,
-                            always_apply=True,
-                        ),
-                        albu.RandomCrop(height=128, width=256, always_apply=True),
-                    ]
+                aug_list.append(
+                    albu.RandomCrop(
+                        height=self.input_shape[0],
+                        width=self.input_shape[1],
+                        always_apply=True,
+                    )
                 )
-            else:
-                aug = albu.Compose(
-                    [
-                        albu.PadIfNeeded(
-                            min_height=128,
-                            min_width=256,
-                            border_mode=cv2.BORDER_CONSTANT,
-                            always_apply=True,
-                        ),
-                        albu.Resize(
-                            height=256,
-                            width=512,
-                            interpolation=cv2.INTER_LINEAR,
-                            always_apply=True,
-                        ),
-                    ]
-                )
+            aug = albu.Compose(aug_list)
         else:
             raise ValueError(f"{self.crop_method} cropping strategy is not available")
 
