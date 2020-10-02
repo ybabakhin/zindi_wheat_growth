@@ -125,37 +125,30 @@ class LitWheatModel(pl.LightningModule):
             train.loc[train["growth_stage"] > 6, "label"] = (
                 train.loc[train["growth_stage"] > 6, "label"] - 3
             )
-        if self.cfg.data_mode.pseudolabels_path != "":
+        if self.cfg.data_mode.pseudolabels_path == "":
+            self.df_train = train[train.fold != self.cfg.training.fold].reset_index(
+                drop=True
+            )
+            self.df_valid = train[
+                (train.fold == self.cfg.training.fold) & (train.label_quality == 2)
+            ].reset_index(drop=True)
+        else:
             pseudo = pd.read_csv(self.cfg.data_mode.pseudolabels_path)
             pseudo = utils.preprocess_df(pseudo, data_dir=self.cfg.data_mode.data_dir)
-            pseudo["fold"] = -1
 
-            # Select only close noisy labels
-            pseudo["is_close"] = False
-            pseudo.loc[
-                (pseudo.growth_stage == 1) & (pseudo.pred < 3), "is_close"
-            ] = True
-            pseudo.loc[
-                (pseudo.growth_stage == 2) & (pseudo.pred < 4), "is_close"
-            ] = True
-            pseudo.loc[
-                (pseudo.growth_stage > 2)
-                & (np.abs(pseudo.pred - pseudo.growth_stage) < 1),
-                "is_close",
-            ] = True
-            pseudo = pseudo[pseudo.is_close].copy()
-            pseudo["label"] = pseudo["growth_stage"] - 1
+            pseudo["growth_stage"] = pseudo["growth_stage"].apply(round).astype(int)
+            pseudo.loc[pseudo["growth_stage"] == 6, "growth_stage"] = 7
+            pseudo["label"] = pseudo["growth_stage"]
 
-            train = pd.concat([train[train.label_quality == 2], pseudo]).sample(
-                frac=1, random_state=13
+            pseudo.loc[pseudo["growth_stage"] < 6, "label"] = (
+                pseudo.loc[pseudo["growth_stage"] < 6, "label"] - 2
+            )
+            pseudo.loc[pseudo["growth_stage"] > 6, "label"] = (
+                pseudo.loc[pseudo["growth_stage"] > 6, "label"] - 3
             )
 
-        self.df_train = train[train.fold != self.cfg.training.fold].reset_index(
-            drop=True
-        )
-        self.df_valid = train[
-            (train.fold == self.cfg.training.fold) & (train.label_quality == 2)
-        ].reset_index(drop=True)
+            self.df_train = pseudo.copy()
+            self.df_valid = pseudo.copy()
 
         logger.info(
             f"Length of the train: {len(self.df_train)}. Length of the validation: {len(self.df_valid)}"
