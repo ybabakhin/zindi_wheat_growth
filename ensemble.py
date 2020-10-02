@@ -33,13 +33,14 @@ def make_ensemble(cfg: omegaconf.DictConfig) -> None:
             metrics.mean_squared_error(predictions.growth_stage, predictions.pred)
         )
         logger.info(f"OOF ENSEMBLE VALIDATION SCORE: {rmse:.5f}")
-    elif cfg.testing.pseudolabels:
+    elif cfg.testing.mode == "pseudo":
         for fold in cfg.testing.folds:
             test_predictions = utils.combine_dataframes(
                 models_list=cfg.ensemble.model_ids,
                 logs_dir=cfg.general.logs_dir,
-                filename=f"test_preds_fold_{fold}.csv",
+                filename=f"pseudo_fold_{fold}.csv",
                 output_colname="growth_stage",
+                agg_func="mode",
             )
 
             save_path = os.path.join(

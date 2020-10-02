@@ -186,68 +186,66 @@
 #model.architecture_name=resnext50_32x4d \
 #testing.mode=valid,test \
 #model.input_size=[512,512]
+
+#python ensemble.py --multirun \
+#ensemble.model_ids=[224,226,228,210,211,214,220,221,222,232,233,234] \
+#testing.mode=valid,test
 # ***************************************
 
 # Pseudolabels ***********************
-#python train.py --multirun \
-#model.model_id=953 \
-#training.fold=0 \
-#model.architecture_name=resnet50 \
-#training.max_epochs=10 \
-#data_mode.pseudolabels_path='${general.logs_dir}224_226_228_210_211_214_220_221_222_232_233_234_ens.csv' \
-#callbacks.model_checkpoint.save_last=true \
-#scheduler=plateau \
-#training.label_augmentation=0.2
+python train.py --multirun \
+model.model_id=955 \
+training.fold=0,1,2,3,4 \
+model.architecture_name=resnet50 \
+training.max_epochs=10 \
+data_mode.pseudolabels_path='${general.logs_dir}224_226_228_pseudo_fold_${training.fold}.csv' \
+callbacks.model_checkpoint.save_last=true \
+scheduler=plateau \
+training.label_augmentation=0.2
+
+python train.py --multirun \
+model.model_id=956 \
+model.architecture_name=resnet50 \
+training.fold=0,1,2,3,4 \
+data_mode=bad_quality \
+training.max_epochs=10 \
+callbacks.model_checkpoint.save_last=true \
+scheduler=plateau \
+training.label_augmentation=0.2 \
+training.pretrain_dir='${general.logs_dir}model_955/fold_${training.fold}/' \
+
+python train.py --multirun \
+model.model_id=238 \
+training.fold=0,1,2,3,4 \
+model.architecture_name=resnet50 \
+training.max_epochs=50 \
+scheduler=plateau \
+training.pretrain_dir='${general.logs_dir}model_956/fold_${training.fold}/' \
+training.label_augmentation=0.1
 
 #python train.py --multirun \
-#model.model_id=954 \
-#model.architecture_name=resnet50 \
-#training.fold=0,1,2,3,4 \
-#data_mode=bad_quality \
-#training.max_epochs=10 \
-#callbacks.model_checkpoint.save_last=true \
-#scheduler=plateau \
-#training.label_augmentation=0.2 \
-#training.pretrain_dir='${general.logs_dir}model_953/fold_0/' \
-#
-#python train.py --multirun \
-#model.model_id=235 \
-#training.fold=0,1,2,3,4 \
-#model.architecture_name=resnet50 \
-#training.max_epochs=30 \
-#scheduler=plateau \
-#training.pretrain_dir='${general.logs_dir}model_954/fold_${training.fold}/' \
-#training.label_augmentation=0.1
-
-#python train.py --multirun \
-#model.model_id=236 \
+#model.model_id=240 \
 #training.fold=0,1,2,3,4 \
 #model.architecture_name=resnet50 \
 #training.max_epochs=10 \
-#training.pretrain_dir='${general.logs_dir}model_235/fold_${training.fold}/' \
+#training.pretrain_dir='${general.logs_dir}model_238/fold_${training.fold}/' \
 #training.lr=1e-6
 
+python train.py --multirun \
+model.model_id=239 \
+training.fold=0,1,2,3,4 \
+model.architecture_name=resnet50 \
+training.max_epochs=50 \
+scheduler=plateau \
+training.pretrain_dir='${general.logs_dir}model_955/fold_${training.fold}/' \
+training.label_augmentation=0.1
+
 #python train.py --multirun \
-#model.model_id=238 \
+#model.model_id=241 \
 #training.fold=0,1,2,3,4 \
 #model.architecture_name=resnet50 \
-#training.max_epochs=50 \
-#scheduler=plateau \
-#training.pretrain_dir='${general.logs_dir}model_954/fold_${training.fold}/' \
-#training.label_augmentation=0.1]
+#training.max_epochs=10 \
+#training.pretrain_dir='${general.logs_dir}model_239/fold_${training.fold}/' \
+#training.lr=1e-6
 
-python test.py --multirun \
-model.model_id=224 \
-model.architecture_name=resnet50 \
-testing.mode=pseudo
-
-python test.py --multirun \
-model.model_id=226 \
-model.architecture_name=resnet101 \
-testing.mode=pseudo
-
-python test.py --multirun \
-model.model_id=228 \
-model.architecture_name=resnext50_32x4d \
-testing.mode=pseudo
 

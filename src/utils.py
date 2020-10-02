@@ -11,7 +11,11 @@ def preprocess_df(df: pd.DataFrame, data_dir: str) -> pd.DataFrame:
 
 
 def combine_dataframes(
-    models_list: List[int], logs_dir: str, filename: str, output_colname: str
+    models_list: List[int],
+    logs_dir: str,
+    filename: str,
+    output_colname: str,
+    agg_func: str = "mean",
 ) -> pd.DataFrame:
     predictions = [
         pd.read_csv(os.path.join(logs_dir, f"model_{m_id}", filename), index_col="UID")
@@ -19,7 +23,11 @@ def combine_dataframes(
     ]
 
     predictions = pd.concat(predictions, axis=1)
-    predictions = predictions.mean(axis=1).reset_index()
+    if agg_func == "mean":
+        predictions = predictions.mean(axis=1).reset_index()
+    elif agg_func == "mode":
+        predictions = predictions.mode(axis=1)[0].reset_index()
+
     predictions.columns = ["UID", output_colname]
 
     return predictions

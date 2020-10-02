@@ -137,7 +137,6 @@ class LitWheatModel(pl.LightningModule):
             pseudo = utils.preprocess_df(pseudo, data_dir=self.cfg.data_mode.data_dir)
 
             pseudo["growth_stage"] = pseudo["growth_stage"].apply(round).astype(int)
-            pseudo.loc[pseudo["growth_stage"] == 6, "growth_stage"] = 7
             pseudo["label"] = pseudo["growth_stage"]
 
             pseudo.loc[pseudo["growth_stage"] < 6, "label"] = (
