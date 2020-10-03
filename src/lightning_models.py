@@ -125,19 +125,13 @@ class LitWheatModel(pl.LightningModule):
             train.loc[train["growth_stage"] > 6, "label"] = (
                 train.loc[train["growth_stage"] > 6, "label"] - 3
             )
-        if self.cfg.data_mode.pseudolabels_path == "":
-            self.df_train = train[train.fold != self.cfg.training.fold].reset_index(
-                drop=True
-            )
-            self.df_valid = train[
-                (train.fold == self.cfg.training.fold) & (train.label_quality == 2)
-            ].reset_index(drop=True)
-        else:
+        if self.cfg.data_mode.pseudolabels_path != "":
             pseudo = pd.read_csv(self.cfg.data_mode.pseudolabels_path)
             pseudo = utils.preprocess_df(pseudo, data_dir=self.cfg.data_mode.data_dir)
 
             pseudo["growth_stage"] = pseudo["growth_stage"].apply(round).astype(int)
             pseudo["label"] = pseudo["growth_stage"]
+            pseudo["fold"] = -1
 
             pseudo.loc[pseudo["growth_stage"] < 6, "label"] = (
                 pseudo.loc[pseudo["growth_stage"] < 6, "label"] - 2
@@ -145,9 +139,14 @@ class LitWheatModel(pl.LightningModule):
             pseudo.loc[pseudo["growth_stage"] > 6, "label"] = (
                 pseudo.loc[pseudo["growth_stage"] > 6, "label"] - 3
             )
+            train = pd.concat([train, pseudo]).sample(frac=1, random_state=123)
 
-            self.df_train = pseudo.copy()
-            self.df_valid = pseudo.copy()
+        self.df_train = train[train.fold != self.cfg.training.fold].reset_index(
+            drop=True
+        )
+        self.df_valid = train[
+            (train.fold == self.cfg.training.fold) & (train.label_quality == 2)
+        ].reset_index(drop=True)
 
         logger.info(
             f"Length of the train: {len(self.df_train)}. Length of the validation: {len(self.df_valid)}"

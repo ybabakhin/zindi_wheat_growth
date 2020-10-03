@@ -35,8 +35,39 @@ def base(input_h: int, input_w: int) -> albu.Compose:
     return augmentations
 
 
+def hard(input_h: int, input_w: int) -> albu.Compose:
+    augmentations = albu.Compose(
+        [
+            albu.HorizontalFlip(p=0.5),
+            albu.CoarseDropout(
+                max_holes=2,
+                max_height=input_h // 2,
+                max_width=input_w // 128 + 1,
+                min_holes=1,
+                min_height=input_h // 8,
+                min_width=input_w // 128,
+                fill_value=255,
+                p=0.7,
+            ),
+            albu.RandomBrightnessContrast(
+                brightness_limit=0.3, contrast_limit=0.3, p=0.7
+            ),
+            albu.ShiftScaleRotate(
+                shift_limit=0.3,
+                scale_limit=0.3,
+                rotate_limit=10,
+                border_mode=cv2.BORDER_CONSTANT,
+                value=0,
+                p=0.7,
+            ),
+        ],
+        p=1,
+    )
+    return augmentations
+
+
 class Augmentations:
-    _augmentations = {"base": base}
+    _augmentations = {"base": base, "hard": hard}
 
     @classmethod
     def names(cls) -> List[str]:
