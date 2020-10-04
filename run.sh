@@ -298,8 +298,3 @@
 #training.lr=1e-6 \
 #callbacks.model_checkpoint.save_top_k=2
 # ***************************************
-
-python test.py --multirun \
-model.model_id=254 \
-model.architecture_name=densenet169 \
-testing.mode=valid,pseudo,test

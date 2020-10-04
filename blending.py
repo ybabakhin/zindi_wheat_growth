@@ -39,7 +39,6 @@ def make_ensemble(cfg: omegaconf.DictConfig) -> None:
                 models_list=cfg.ensemble.model_ids,
                 logs_dir=cfg.general.logs_dir,
                 filename=f"pseudo_fold_{fold}.csv",
-                output_colname="growth_stage",
                 agg_func="mode",
             )
 
@@ -54,7 +53,6 @@ def make_ensemble(cfg: omegaconf.DictConfig) -> None:
             models_list=cfg.ensemble.model_ids,
             logs_dir=cfg.general.logs_dir,
             filename="test_preds.csv",
-            output_colname="growth_stage",
         )
 
         save_path = os.path.join(

@@ -1,5 +1,5 @@
 import pickle
-from typing import Any, List
+from typing import Any, List, Optional
 
 import glob
 import os
@@ -18,8 +18,8 @@ def combine_dataframes(
     models_list: List[int],
     logs_dir: str,
     filename: str,
-    output_colname: str,
-    agg_func: str = "mean",
+    output_colname: str = "growth_stage",
+    agg_func: Optional[str] = "mean",
 ) -> pd.DataFrame:
     """Combines multiple model predictions for the ensemble.
 
@@ -28,7 +28,8 @@ def combine_dataframes(
         logs_dir: directory with model logs
         filename: file name of the predictions
         output_colname: column name for the ensembled predictions
-        agg_func: one of {'mean', 'mode'}. Aggregation method for the ensembling
+        agg_func: one of {'mean', 'mode', None}. Aggregation method for the ensembling.
+            If None, then no aggregation is applied
 
     Returns:
         DataFrame with image ID and ensembled prediction
@@ -40,6 +41,9 @@ def combine_dataframes(
     ]
 
     predictions = pd.concat(predictions, axis=1)
+    if agg_func is None:
+        return predictions
+
     if agg_func == "mean":
         predictions = predictions.mean(axis=1).reset_index()
     elif agg_func == "mode":
