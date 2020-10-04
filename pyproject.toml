@@ -1,3 +1,4 @@
 [tool.black]
 line-length = 88
 target_version = ["py36"]
+exclude = "(.eggs|.git|.hg|.mypy_cache|.nox|.tox|.venv|.svn|_build|buck-out|build|dist)"

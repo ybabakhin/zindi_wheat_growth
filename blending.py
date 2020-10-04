@@ -1,3 +1,5 @@
+"""Script for generating blend of the input models."""
+
 import logging
 
 import hydra
@@ -5,7 +7,6 @@ import numpy as np
 import omegaconf
 import os
 import pandas as pd
-import pytorch_lightning as pl
 from sklearn import metrics
 
 from src import utils
@@ -15,18 +16,17 @@ logger = logging.getLogger(__name__)
 
 @hydra.main(config_path="conf", config_name="config")
 def make_ensemble(cfg: omegaconf.DictConfig) -> None:
-    os.environ["HYDRA_FULL_ERROR"] = "1"
-    pl.seed_everything(cfg.general.seed)
+    utils.setup_environment(seed=cfg.general.seed, gpu_list=cfg.general.gpu_list)
 
     if cfg.testing.mode == "valid":
         train = pd.read_csv(cfg.data_mode.train_csv)
+
         predictions = utils.combine_dataframes(
             models_list=cfg.ensemble.model_ids,
             logs_dir=cfg.general.logs_dir,
             filename="valid_preds.csv",
             output_colname="pred",
         )
-
         predictions = predictions.merge(train)
 
         rmse = np.sqrt(

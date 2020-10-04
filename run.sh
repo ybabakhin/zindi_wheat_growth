@@ -270,31 +270,36 @@
 #training.lr=1e-6
 # ***************************************
 
-python train.py --multirun \
-model.model_id=963 \
-model.architecture_name=densenet169 \
-training.fold=0,1,2,3,4 \
-data_mode=bad_quality \
-training.max_epochs=10 \
-callbacks.model_checkpoint.save_last=true \
-scheduler=plateau \
-training.label_augmentation=0.2 \
-training.cutmix=0.2
+# Save 2 checkpoints for finetuning ***********************
+#python train.py --multirun \
+#model.model_id=256 \
+#training.fold=0,1,2,3,4 \
+#model.architecture_name=resnet50 \
+#training.max_epochs=10 \
+#training.pretrain_dir='${general.logs_dir}model_210/fold_${training.fold}/' \
+#training.lr=1e-6 \
+#callbacks.model_checkpoint.save_top_k=2
 
-python train.py --multirun \
+#python train.py --multirun \
+#model.model_id=257 \
+#training.fold=0,1,2,3,4 \
+#model.architecture_name=resnet101 \
+#training.max_epochs=10 \
+#training.pretrain_dir='${general.logs_dir}model_211/fold_${training.fold}/' \
+#training.lr=1e-6 \
+#callbacks.model_checkpoint.save_top_k=2
+#
+#python train.py --multirun \
+#model.model_id=258 \
+#training.fold=0,1,2,3,4 \
+#model.architecture_name=resnext50_32x4d \
+#training.max_epochs=10 \
+#training.pretrain_dir='${general.logs_dir}model_214/fold_${training.fold}/' \
+#training.lr=1e-6 \
+#callbacks.model_checkpoint.save_top_k=2
+# ***************************************
+
+python test.py --multirun \
 model.model_id=254 \
-training.fold=0,1,2,3,4 \
 model.architecture_name=densenet169 \
-training.max_epochs=50 \
-scheduler=plateau \
-training.pretrain_dir='${general.logs_dir}model_963/fold_${training.fold}/' \
-training.label_augmentation=0.1 \
-training.cutmix=0.2
-
-python train.py --multirun \
-model.model_id=255 \
-training.fold=0,1,2,3,4 \
-model.architecture_name=densenet169 \
-training.max_epochs=10 \
-training.pretrain_dir='${general.logs_dir}model_254/fold_${training.fold}/' \
-training.lr=1e-6
+testing.mode=valid,pseudo,test

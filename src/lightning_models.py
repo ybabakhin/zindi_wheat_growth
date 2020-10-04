@@ -1,3 +1,5 @@
+"""Zindi Wheat custom Lightning module."""
+
 import glob
 import logging
 from argparse import Namespace
@@ -29,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class MixupOutput:
-    """Data class wrapping mixup augmentation output"""
+    """Data class wrapping mixup augmentation output."""
 
     data: torch.Tensor
     labels: torch.Tensor
@@ -38,11 +40,19 @@ class MixupOutput:
 
 
 class LitWheatModel(pl.LightningModule):
+    """Custom LightningModule for Zindi Wheat competition."""
+
     def __init__(
         self,
         hparams: Optional[Union[dict, Namespace, str]] = None,
         hydra_cfg: Optional[omegaconf.DictConfig] = None,
     ) -> None:
+        """
+        Args:
+            hparams: Lightning's default hyperparameters
+            hydra_cfg: Hydra config with all the hyperparameters
+        """
+
         super(LitWheatModel, self).__init__()
 
         self.cfg = hydra_cfg
@@ -51,13 +61,9 @@ class LitWheatModel(pl.LightningModule):
         # Number of classes in bad labels does not equal to the number of classes in good labels
         init_model_num_classes = self.cfg.data_mode.num_classes
         if self.cfg.training.pretrain_dir != "":
-            last_path = os.path.join(self.cfg.training.pretrain_dir, "last.ckpt")
-            if os.path.exists(last_path):
-                pretrain_path = last_path
-            else:
-                pretrain_path = glob.glob(
-                    os.path.join(self.cfg.training.pretrain_dir, "*.ckpt")
-                )[0]
+            pretrain_path = glob.glob(
+                os.path.join(self.cfg.training.pretrain_dir, "*.ckpt")
+            )[0]
             checkpoint = torch.load(pretrain_path, map_location="cpu")
             init_model_num_classes = (
                 checkpoint["state_dict"]
@@ -78,7 +84,6 @@ class LitWheatModel(pl.LightningModule):
 
             mean = [0.485, 0.456, 0.406]
             std = [0.229, 0.224, 0.225]
-
         else:
             self.model = cnn_finetune.make_model(
                 self.cfg.model.architecture_name,
@@ -105,6 +110,8 @@ class LitWheatModel(pl.LightningModule):
         return x
 
     def setup(self, stage: str = "fit") -> None:
+        """See base class."""
+
         train = pd.read_csv(self.cfg.data_mode.train_csv)
         train = utils.preprocess_df(train, data_dir=self.cfg.data_mode.data_dir)
         train["label"] = train["growth_stage"]
@@ -125,6 +132,7 @@ class LitWheatModel(pl.LightningModule):
             train.loc[train["growth_stage"] > 6, "label"] = (
                 train.loc[train["growth_stage"] > 6, "label"] - 3
             )
+
         if self.cfg.data_mode.pseudolabels_path != "":
             pseudo = pd.read_csv(self.cfg.data_mode.pseudolabels_path)
             pseudo = utils.preprocess_df(pseudo, data_dir=self.cfg.data_mode.data_dir)
@@ -153,6 +161,8 @@ class LitWheatModel(pl.LightningModule):
         )
 
     def train_dataloader(self) -> torch_data.DataLoader:
+        """See base class."""
+
         augs = augmentations.Augmentations.get(self.cfg.training.augmentations)(
             *self.cfg.model.input_size
         )
@@ -179,6 +189,8 @@ class LitWheatModel(pl.LightningModule):
     def val_dataloader(
         self
     ) -> Union[torch_data.DataLoader, List[torch_data.DataLoader]]:
+        """See base class."""
+
         valid_dataset = dataset.ZindiWheatDataset(
             images=self.df_valid.path.values,
             labels=self.df_valid.label.values,
@@ -209,6 +221,8 @@ class LitWheatModel(pl.LightningModule):
             Tuple[List, List],
         ]
     ]:
+        """See base class."""
+
         num_train_steps = len(self.train_dataloader()) * self.cfg.training.max_epochs
         optimizer = hydra.utils.instantiate(
             self.cfg.optimizer, params=self.parameters()
@@ -235,6 +249,16 @@ class LitWheatModel(pl.LightningModule):
     def mixup(
         data: torch.Tensor, labels: torch.Tensor, alpha: float = 0.2
     ) -> MixupOutput:
+        """Transforms input batch into mixedup batch
+
+        Args:
+            data: input batch data
+            labels: input batch labels
+            alpha: Beta distribution argument to generate weights for mixup
+
+        Returns:
+            MixupOutput with mixedup data and labels
+        """
         indices = torch.randperm(data.size(0))
         shuffled_data = data[indices]
         shuffled_labels = labels[indices]
@@ -256,6 +280,15 @@ class LitWheatModel(pl.LightningModule):
     def rand_bbox(
         height: int, width: int, lam: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Generates random bounding box for the cutmix.
+        Args:
+            height: height of the image
+            width: width of the image
+            lam: percentage of the image to be cut
+
+        Returns:
+            Coordinates of bounding boxes to be cut
+        """
         cut_rat = np.sqrt(1.0 - lam)
         cut_w = (width * cut_rat).astype(int)
         cut_h = (height * cut_rat).astype(int)
@@ -274,6 +307,16 @@ class LitWheatModel(pl.LightningModule):
     def cutmix(
         self, data: torch.Tensor, labels: torch.Tensor, alpha: float = 0.4
     ) -> MixupOutput:
+        """Transforms input batch into cutmixed batch
+
+        Args:
+            data: input batch data
+            labels: input batch labels
+            alpha: Beta distribution argument to generate weights for cutmix
+
+        Returns:
+            MixupOutput with cutmixed data and labels
+        """
         indices = torch.randperm(data.size(0))
         shuffled_data = data[indices]
         shuffled_labels = labels[indices]
@@ -301,6 +344,16 @@ class LitWheatModel(pl.LightningModule):
     def mixup_cutmix_criterion(
         self, preds: torch.Tensor, mixup_output: MixupOutput
     ) -> torch.Tensor:
+        """Calculates weighted CE-loss for mixup or cutmix.
+
+        Args:
+            preds: predictions of the model
+            mixup_output: mixedup or cutmixed data batch
+
+        Returns:
+            Weighted Cross Entropy loss
+        """
+
         non_reduction_loss = nn.CrossEntropyLoss(reduction="none")
         loss = mixup_output.lam * non_reduction_loss(preds, mixup_output.labels) + (
             1 - mixup_output.lam
@@ -311,6 +364,17 @@ class LitWheatModel(pl.LightningModule):
     def _model_step(
         self, batch: Dict[str, torch.Tensor], mixup: bool = False, cutmix: bool = False
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Performs train or validation single step.
+
+        Args:
+            batch: input batch data
+            mixup: flag whether to use mixup
+            cutmix: flag wheterh to use cutmix
+
+        Returns:
+            Tuple of model predictions and calculated loss
+        """
+
         images = batch["image"]
         labels = batch["label"]
 
@@ -337,6 +401,8 @@ class LitWheatModel(pl.LightningModule):
     def training_step(
         self, batch: Dict[str, torch.Tensor], batch_idx: int
     ) -> Dict[str, Any]:
+        """See base class."""
+
         _, loss = self._model_step(
             batch,
             mixup=self.cfg.training.mixup > 0,
@@ -349,6 +415,8 @@ class LitWheatModel(pl.LightningModule):
     def validation_step(
         self, batch: Dict[str, torch.Tensor], batch_idx: int
     ) -> Dict[str, Any]:
+        """See base class."""
+
         preds, loss = self._model_step(batch)
         if not self.cfg.model.regression:
             preds = torch.softmax(preds, dim=1)
@@ -358,6 +426,8 @@ class LitWheatModel(pl.LightningModule):
     def validation_epoch_end(
         self, outputs: Union[EvalResult, List[EvalResult]]
     ) -> Dict[str, Any]:
+        """See base class."""
+
         if self.cfg.model.regression:
             preds = np.concatenate([x["preds"].cpu().detach().numpy() for x in outputs])
         else:
@@ -365,6 +435,7 @@ class LitWheatModel(pl.LightningModule):
 
         avg_loss = torch.stack([x["step_val_loss"] for x in outputs]).mean().item()
 
+        # Multiply class probabilities by class labels
         if not self.cfg.model.regression:
             preds = np.sum(preds * self.multipliers, axis=-1)
         preds = np.clip(preds, min(self.multipliers), max(self.multipliers))

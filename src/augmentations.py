@@ -5,6 +5,16 @@ import cv2
 
 
 def base(input_h: int, input_w: int) -> albu.Compose:
+    """Base augmentation strategy.
+
+    Args:
+        input_h: image height
+        input_w: image width
+
+    Returns:
+        List of augmentations
+    """
+
     augmentations = albu.Compose(
         [
             albu.HorizontalFlip(p=0.5),
@@ -36,6 +46,16 @@ def base(input_h: int, input_w: int) -> albu.Compose:
 
 
 def hard(input_h: int, input_w: int) -> albu.Compose:
+    """Hard augmentation strategy.
+
+    Args:
+        input_h: image height
+        input_w: image width
+
+    Returns:
+        List of augmentations
+    """
+
     augmentations = albu.Compose(
         [
             albu.HorizontalFlip(p=0.5),
@@ -67,6 +87,8 @@ def hard(input_h: int, input_w: int) -> albu.Compose:
 
 
 class Augmentations:
+    """Augmentations factory."""
+
     _augmentations = {"base": base, "hard": hard}
 
     @classmethod
@@ -75,12 +97,12 @@ class Augmentations:
 
     @classmethod
     def get(cls, name: str) -> Optional[Callable[[int, int], albu.Compose]]:
-        """
-        Access to augmentation strategies
+        """Access to augmentation strategies
+
         Args:
-            name (str): augmentation strategy name
+            name: augmentation strategy name
         Returns:
-            callable: function to build augmentation strategy
+            A function to build augmentation strategy
         """
 
         return cls._augmentations.get(name)

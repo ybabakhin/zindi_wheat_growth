@@ -9,6 +9,8 @@ from torch.utils import data as torch_data
 
 
 class ZindiWheatDataset(torch_data.Dataset):
+    """Custom dataset for Zindi Wheat competition."""
+
     def __init__(
         self,
         images: Sequence[str],
@@ -19,6 +21,18 @@ class ZindiWheatDataset(torch_data.Dataset):
         crop_method: str = "resize",
         augment_label: float = 0.0,
     ) -> None:
+        """
+        Args:
+            images: sequence of input images
+            labels: sequence of corresponding labels
+            preprocess_function: normalization function for input images
+            augmentations: list of augmentation to be applied
+            input_shape: image input shape to the model
+            crop_method: one of {'resize', 'crop'}. Cropping strategy for input images
+                - 'resize' corresponds to resizing the image to the input shape
+                - 'crop' corresponds to random cropping from the given image
+            augment_label: probability to perform label augmentation
+        """
         self.images = images
         self.labels = labels
         self.preprocess_function = preprocess_function
@@ -33,22 +47,17 @@ class ZindiWheatDataset(torch_data.Dataset):
     def __getitem__(self, image_index: int) -> Dict[str, Any]:
         sample = dict()
 
-        # Read data
         sample["image"] = self._read_image(image_index)
 
-        # Read labels
         if self.labels is not None:
             sample = self._read_label(image_index, sample)
 
-        # Crop data
         if self.crop_method is not None:
             sample = self._crop_data(sample)
 
-        # Augment data
         if self.augmentations is not None:
             sample = self._augment_data(sample)
 
-        # Preprocess data
         if self.preprocess_function is not None:
             sample = self._preprocess_data(sample)
 
@@ -62,6 +71,7 @@ class ZindiWheatDataset(torch_data.Dataset):
     def _read_label(self, image_index: int, sample: Dict[str, Any]) -> Dict[str, Any]:
         aug_label = self.labels[image_index]
 
+        # Label augmentation assigns neighbor classes with the probability self.augment_label
         if self.augment_label > 0:
             p = random.random()
             if p < self.augment_label / 2:
@@ -73,7 +83,6 @@ class ZindiWheatDataset(torch_data.Dataset):
         return sample
 
     def _crop_data(self, sample: Dict[str, Any]) -> Dict[str, Any]:
-
         if self.crop_method == "resize":
             aug = albu.Compose(
                 [

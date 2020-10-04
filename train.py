@@ -1,13 +1,18 @@
-import glob
+"""Script for training a single model.
+
+Example:
+        >>> python train.py model.model_id=1
+"""
+
 import logging
 
 import hydra
 import omegaconf
-import os
 import pytorch_lightning as pl
 import torch
 
 from src.lightning_models import LitWheatModel
+from src import utils
 
 logger = logging.getLogger(__name__)
 
@@ -15,8 +20,7 @@ logger = logging.getLogger(__name__)
 @hydra.main(config_path="conf", config_name="config")
 def run_model(cfg: omegaconf.DictConfig) -> None:
     logger.info(f"Config: {omegaconf.OmegaConf.to_yaml(cfg)}")
-    os.environ["HYDRA_FULL_ERROR"] = "1"
-    pl.seed_everything(cfg.general.seed)
+    utils.setup_environment(seed=cfg.general.seed, gpu_list=cfg.general.gpu_list)
 
     earlystopping_callback = hydra.utils.instantiate(cfg.callbacks.early_stopping)
     checkpoint_callback = hydra.utils.instantiate(cfg.callbacks.model_checkpoint)
@@ -24,15 +28,8 @@ def run_model(cfg: omegaconf.DictConfig) -> None:
     lr_logger = hydra.utils.instantiate(cfg.callbacks.lr_logger)
 
     if cfg.training.pretrain_dir != "":
-        last_path = os.path.join(cfg.training.pretrain_dir, "last.ckpt")
-        if os.path.exists(last_path):
-            pretrain_path = last_path
-        else:
-            pretrain_path = glob.glob(
-                os.path.join(cfg.training.pretrain_dir, "*.ckpt")
-            )[0]
-        logger.info(f"Loading the pre-trained model from: {pretrain_path}")
-
+        logger.info(f"Loading the pre-trained model from: {cfg.training.pretrain_dir}")
+        pretrain_path = utils.get_single_model_path(cfg.training.pretrain_dir)
         model = LitWheatModel.load_from_checkpoint(pretrain_path, hydra_cfg=cfg)
 
         # Number of classes in bad labels does not equal to the number of classes in good labels

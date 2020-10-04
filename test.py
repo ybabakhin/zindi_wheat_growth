@@ -1,3 +1,9 @@
+"""Inference script for a single model.
+
+Example:
+        >>> python test.py model.model_id=1
+"""
+
 import gc
 import glob
 import logging
@@ -7,10 +13,8 @@ import numpy as np
 import omegaconf
 import os
 import pandas as pd
-import pytorch_lightning as pl
 import torch
 import tqdm
-import ttach
 from sklearn import metrics
 from torch.utils import data as torch_data
 
@@ -24,17 +28,14 @@ logger = logging.getLogger(__name__)
 
 @hydra.main(config_path="conf", config_name="config")
 def run_model(cfg: omegaconf.DictConfig) -> None:
-    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(
-        [str(x) for x in cfg.general.gpu_list]
-    )
-    os.environ["HYDRA_FULL_ERROR"] = "1"
-    pl.seed_everything(cfg.general.seed)
+    utils.setup_environment(seed=cfg.general.seed, gpu_list=cfg.general.gpu_list)
 
     if cfg.testing.mode == "valid":
         test = pd.read_csv(cfg.data_mode.train_csv)
         test = test[test.label_quality == 2].reset_index(drop=True)
     else:
         test = pd.read_csv(cfg.testing.test_csv)
+
     test = utils.preprocess_df(test, data_dir=cfg.data_mode.data_dir)
     logger.info(f"Length of the test data: {len(test)}")
 
@@ -43,7 +44,6 @@ def run_model(cfg: omegaconf.DictConfig) -> None:
     pred_list = []
 
     for fold in cfg.testing.folds:
-
         if cfg.testing.mode == "valid":
             df_test = test[test.fold == fold].reset_index(drop=True)
         else:
@@ -73,21 +73,6 @@ def run_model(cfg: omegaconf.DictConfig) -> None:
                 crop_method=cfg.model.crop_method,
             )
 
-            if cfg.testing.tta:
-                transforms = [ttach.HorizontalFlip()]
-                if cfg.model.crop_method == "crop":
-                    transforms.append(
-                        tta.ThreeCrops(
-                            crop_height=cfg.model.input_size[0],
-                            crop_width=cfg.model.input_size[1],
-                        )
-                    )
-                transforms = ttach.Compose(transforms)
-                model = ttach.ClassificationTTAWrapper(model, transforms)
-
-            if torch.cuda.is_available() and torch.cuda.device_count() > 1:
-                model = torch.nn.DataParallel(model)
-
             test_loader = torch_data.DataLoader(
                 test_dataset,
                 batch_size=cfg.training.batch_size,
@@ -95,6 +80,16 @@ def run_model(cfg: omegaconf.DictConfig) -> None:
                 shuffle=False,
                 pin_memory=True,
             )
+
+            if cfg.testing.tta:
+                model = tta.get_tta_model(
+                    model,
+                    crop_method=cfg.model.crop_method,
+                    input_size=cfg.model.input_size,
+                )
+
+            if torch.cuda.is_available() and torch.cuda.device_count() > 1:
+                model = torch.nn.DataParallel(model)
 
             with torch.no_grad():
                 tq = tqdm.tqdm(test_loader, total=len(test_loader))
@@ -119,6 +114,7 @@ def run_model(cfg: omegaconf.DictConfig) -> None:
         torch.cuda.empty_cache()
         fold_predictions = np.mean(fold_predictions, axis=-1)
 
+        # OOF predictions for validation and pseudolabels
         if cfg.testing.mode == "valid" or cfg.testing.mode == "pseudo":
             df_list.append(df_test)
 
@@ -130,6 +126,7 @@ def run_model(cfg: omegaconf.DictConfig) -> None:
         test = pd.concat(df_list)
         probs = np.vstack(pred_list)
         filename = "validation_probs.pkl"
+
     elif cfg.testing.mode == "pseudo":
         for fold, df_test, probs in zip(cfg.testing.folds, df_list, pred_list):
             predictions = np.argmax(probs, axis=1)
@@ -141,8 +138,8 @@ def run_model(cfg: omegaconf.DictConfig) -> None:
             )
             logger.info(f"Saving pseudolabels to {save_path}")
             df_test[["UID", "growth_stage"]].to_csv(save_path, index=False)
-
         return
+
     else:
         probs = np.stack(pred_list)
         probs = np.mean(probs, axis=0)
