@@ -29,6 +29,14 @@ def make_ensemble(cfg: omegaconf.DictConfig) -> None:
         )
         predictions = predictions.merge(train)
 
+        if cfg.ensemble.postprocessing:
+            for mult in cfg.data_mode.rmse_multipliers:
+                predictions.loc[
+                    (predictions["pred"] < mult + 0.03)
+                    & (predictions["pred"] > mult - 0.03),
+                    "pred",
+                ] = mult
+
         rmse = np.sqrt(
             metrics.mean_squared_error(predictions.growth_stage, predictions.pred)
         )
@@ -54,6 +62,14 @@ def make_ensemble(cfg: omegaconf.DictConfig) -> None:
             logs_dir=cfg.general.logs_dir,
             filename="test_preds.csv",
         )
+
+        if cfg.ensemble.postprocessing:
+            for mult in cfg.data_mode.rmse_multipliers:
+                test_predictions.loc[
+                    (test_predictions["growth_stage"] < mult + 0.03)
+                    & (test_predictions["growth_stage"] > mult - 0.03),
+                    "growth_stage",
+                ] = mult
 
         save_path = os.path.join(
             cfg.general.logs_dir,

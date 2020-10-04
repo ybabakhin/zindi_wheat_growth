@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Prepare the data
+#python src/create_folds.py
+# ***************************************
+
 # Base pretraining (166, 177, 178) ***********************
 #python train.py --multirun \
 #model.model_id=923 \

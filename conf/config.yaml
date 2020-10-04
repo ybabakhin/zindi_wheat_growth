@@ -12,7 +12,7 @@ general:
   gpu_list: [0, 1]
 
 model:
-  model_id: 244
+  model_id: 252
   regression: false
   architecture_name: resnet50
   dropout: 0.3
@@ -39,7 +39,8 @@ testing:
   tta: true
 
 ensemble:
-  model_ids: [256, 257, 258]
+  model_ids: [224, 226, 228, 211, 221, 222, 224]
+  postprocessing: false
 
 hydra:
   run:
