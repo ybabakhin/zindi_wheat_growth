@@ -69,8 +69,8 @@ A couple of examples:
 2. Fine-tune on good labels for 50 epochs with reducing learning rate on plateau
 
 ### Ensemble
-Ensembling multiple models worked pretty well in this problem. My final solution is just an average of twelve 5-fold models (60 checkpoints overall):
-* Architectures: ResNet50, ResNet101, ResNeXt50, DenseNet169
+Ensembling multiple models worked pretty well in this problem. My final solution is just an average of five 5-fold models (25 checkpoints overall):
+* Architectures: ResNet50, ResNet101, ResNeXt50
 * Input sizes: `256x256` and `512x512`
 * It achieved 0.39949 RMSE on Private LB
 
