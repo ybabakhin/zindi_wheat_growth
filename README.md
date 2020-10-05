@@ -1,23 +1,34 @@
-#  Place Solution for the Zindi CGIAR Wheat Growth Stage Challenge
+# 1st Place Solution for the Zindi CGIAR Wheat Growth Stage Challenge
 [Competition website](https://zindi.africa/competitions/cgiar-wheat-growth-stage-challenge)
 
 The problem is to estimate the growth stage of a wheat crop based on an image sent in by the farmer. Model must take in an image and output a prediction for the growth stage of the wheat shown, on a scale from 1 (crop just showing) to 7 (mature crop).
 
 ## Instructions to run the code
 
-### Environment
+### System Requirements
+The following system requirements should be satisfied:
+* OS: Ubuntu 16.04
+* Python: 3.6
+* CUDA: 10.1
+* cudnn: 7
+* [pipenv](https://github.com/pypa/pipenv) (`pip install pipenv`)
+
+The training has been done on 2 x GeForce RTX 2080. The batch sizes are selected accordingly.
+* Change the list of available GPUs in `./conf/config.yaml`. The parameter is called `gpu_list`
+* Override the batch size if needed in `train.sh` and `inference.sh` providing `training.batch_size` argument 
 
 ### Data Setup
-1. Download data from the competition page and save it to the `./data/` directory.
-2. Unzip `Image.zip`
+1. Download data from the competition website and save it to the `./data/` directory.
+2. Unzip `Images.zip` there
 
-### Weights Setup
-
-### Docker Setup
+### Environment Setup
+1. Navigate to the project directory
+2. Run `pipenv install --system --deploy --ignore-pipfile`
+3. Run `pipenv shell` to start the environment
 
 ### Train the model
-* Change the list of available GPUs in `./conf/config.yaml`. The parameter is called `gpu_list`.
-* To start training the model simply run `./run.sh` script
+* To start training the model, run `./train.sh`
+* For inference, run `./inference.sh`
 
 ## Solution Description
 The dataset has two sets of labels: `bad` and `good` quality, but test dataset consists only of good quality labels.
@@ -25,15 +36,15 @@ First of all, there is no clear correspondance between bad and good labels (good
 Secondly, bad and good quality images could be easily distinguished using a simple binary classifier. So, they come from the different distributions. Looking at the Grad-CAM of such a model suggests that the major difference between two sets of images is these white sticks (poles):
 ![](imgs/gradcam_quality.png?raw=true "Grad-CAM")
 
-That's why my training process consists of 2 steps:
+That's why training process consists of 2 steps:
 1. Pre-train the model on the mix of bad and good quality labels
 2. Finetune the model only on the good quality labels
 
 ### Single best model
-Best single model (average of 5 folds on the test set) achieves 0.42679 RMSE on local validation and 0.42818 on Public LB.
+Best single model (average of 5 folds on the test set) achieves 0.40327 RMSE on Private LB.
 
 #### Model hyperparameters
-* Architecture: ResNet50
+* Architecture: ResNet101
 * Problem type: classification
 * Loss: cross entropy
 * FC Dropout probability: 0.3
@@ -56,13 +67,12 @@ A couple of examples:
 #### Training process
 1. Pre-train on mix of good and bad labels for 10 epochs
 2. Fine-tune on good labels for 50 epochs with reducing learning rate on plateau
-3. Fine-tune for 10 epochs more with cosine annealing and a smaller learning rate
 
 ### Ensemble
 Ensembling multiple models worked pretty well in this problem. My final solution is just an average of twelve 5-fold models (60 checkpoints overall):
 * Architectures: ResNet50, ResNet101, ResNeXt50, DenseNet169
 * Input sizes: `256x256` and `512x512`
-* It achieved 0.406 RMSE on local validation and 0.42135 on Public LB
+* It achieved 0.39949 RMSE on Private LB
 
 ### What didn't work
 * Various options of pseudolabels. Generating pseudolabels for bad quality label and test set; pre-training; mixing with actual labels, etc.

@@ -22,7 +22,7 @@ def split_data(df: pd.DataFrame) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    train = pd.read_csv("../data/Train.csv")
+    train = pd.read_csv("data/Train.csv")
     train["fold"] = -1
     all_train_list = []
 
@@ -34,4 +34,4 @@ if __name__ == "__main__":
 
     all_train = pd.concat(all_train_list).sample(frac=1, random_state=13)
 
-    all_train.to_csv("../data/Train_proc.csv", index=False)
+    all_train.to_csv("data/Train_proc.csv", index=False)

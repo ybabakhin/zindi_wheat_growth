@@ -5,14 +5,14 @@ defaults:
   - data_mode: good_quality
 
 general:
-  base_dir: /data/ybabakhin/data/zindi_wheat/zindi_wheat_growth/
-  logs_dir: ${general.base_dir}lightning_logs/
+  base_dir: ./
+  logs_dir: lightning_logs/
   seed: 13
   num_workers: 4
   gpu_list: [0, 1]
 
 model:
-  model_id: 252
+  model_id: 1
   regression: false
   architecture_name: resnet50
   dropout: 0.3
@@ -34,14 +34,17 @@ training:
 
 testing:
   folds: [0, 1, 2, 3, 4]
-  test_csv: ${general.base_dir}data/SampleSubmission.csv
+  test_csv: data/SampleSubmission.csv
   mode: test
   tta: true
 
 ensemble:
-  model_ids: [224, 226, 228, 211, 221, 222, 224]
+  model_ids: [2, 3, 4, 5, 6]
   postprocessing: false
 
 hydra:
   run:
-    dir: ${general.logs_dir}model_${model.model_id}
+    dir: ${general.base_dir}
+  sweep:
+    dir: ${general.base_dir}
+    subdir: ""
