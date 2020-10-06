@@ -13,22 +13,30 @@ The following system requirements should be satisfied:
 * cudnn: 7
 * [pipenv](https://github.com/pypa/pipenv) (`pip install pipenv`)
 
-The training has been done on 2 x GeForce RTX 2080. The batch sizes are selected accordingly.
+The training has been done on 2 x GeForce RTX 2080 (training time of the final ensemble is about 15 hours). The batch sizes are selected accordingly.
 * Change the list of available GPUs in `./conf/config.yaml`. The parameter is called `gpu_list`
 * Override the batch size if needed in `train.sh` and `inference.sh` providing `training.batch_size` argument 
 
-### Data Setup
-1. Download data from the competition website and save it to the `./data/` directory.
-2. Unzip `Images.zip` there
-
 ### Environment Setup
 1. Navigate to the project directory
-2. Run `pipenv install --system --deploy --ignore-pipfile`
-3. Run `pipenv shell` to start the environment
+2. Run `pipenv install --system --deploy --ignore-pipfile` to install dependencies
+3. Run `pipenv shell` to activate the environment
 
-### Train the model
-* To start training the model, run `./train.sh`
-* For inference, run `./inference.sh`
+### Data Setup
+1. Download data from the competition website and save it to the `./data/` directory.
+2. Unzip `Images.zip` there: `unzip Images.zip`
+
+### Best ensemble submission
+* The best Private LB submission (0.39949 RMSE) is available in `./lightning_logs/best_model.csv`
+
+### Best ensemble inference
+* Download [zindi_wheat_weights.zip](https://drive.google.com/file/d/1gzhfQGSzi4GFMPMsB38P1m3wxWLV2UZw/view?usp=sharing) to the project directory
+* Unzip them there: `unzip zindi_wheat_weights.zip`
+* For inference, run `./inference.sh`. Final ensemble predictions will be saved to `./lightning_logs/2_3_4_5_6_ens.csv`
+
+### Train the model from scratch
+* To start training the model from scratch, run `./train.sh` (takes about 15 hours on 2x2080)
+* Afterwards, `./inference.sh` could be run
 
 ## Solution Description
 The dataset has two sets of labels: `bad` and `good` quality, but test dataset consists only of good quality labels.
@@ -61,8 +69,8 @@ The median image size in the data is about `180 x 512`. For preprocessing, first
 * Use horizontal flips as TTA
 
 A couple of examples:
-![](imgs/augmentation_1.png?raw=true "augmentation_1")
-![](imgs/augmentation_2.png?raw=true "augmentation_2")
+![](imgs/augmentation_1.png?raw=true "Augmentation 1")
+![](imgs/augmentation_2.png?raw=true "Augmentation 2")
 
 #### Training process
 1. Pre-train on mix of good and bad labels for 10 epochs
@@ -79,4 +87,4 @@ Ensembling multiple models worked pretty well in this problem. My final solution
 * MixUp and CutMix augmentations
 * EffecientNet architectures
 * Treating the problem as a regression (didn't help even in the ensemble)
-* Stacking of 1st level models predictions
+* Stacking over the first level models predictions
