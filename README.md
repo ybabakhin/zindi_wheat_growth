@@ -19,7 +19,7 @@ The training has been done on 2 x GeForce RTX 2080 (training time of the final e
 
 ### Environment Setup
 1. Navigate to the project directory
-2. Run `pipenv install --system --deploy --ignore-pipfile` to install dependencies
+2. Run `pipenv install --deploy --ignore-pipfile` to install dependencies
 3. Run `pipenv shell` to activate the environment
 
 ### Data Setup
