@@ -23,6 +23,6 @@ model.architecture_name=resnext50_32x4d \
 testing.mode=test
 
 # Ensemble
-python ensemble.py \
+python blending.py \
 ensemble.model_ids=[2,3,4,5,6] \
 testing.mode=test
